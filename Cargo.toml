@@ -1,0 +1,3 @@
+[workspace]
+resolver = "3"
+members = ["acc-race-session-reader-lib", "acc-race-session-reader-frontend", "acc-race-session-reader-frontend/src-tauri"]

@@ -1,0 +1,38 @@
+# Build artifacts
+target/
+dist/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Development files
+.devenv/
+.direnv/
+.envrc
+devenv.*
+.pre-commit-config.yaml
+
+# CI/CD
+.github/
+
+# Tauri (not needed for web build)
+acc-race-session-reader-frontend/src-tauri/
+
+# Documentation
+*.md
+!README.md
+
+# Misc
+.DS_Store
+Thumbs.db
+*.log
+
+# Claude
+.claude/

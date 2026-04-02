@@ -20,6 +20,9 @@ COPY Cargo.toml Cargo.lock ./
 COPY acc-race-session-reader-lib ./acc-race-session-reader-lib
 COPY acc-race-session-reader-frontend/Cargo.toml ./acc-race-session-reader-frontend/
 COPY acc-race-session-reader-frontend/src ./acc-race-session-reader-frontend/src
+# Copy src-tauri to satisfy workspace member requirement (not built for web)
+COPY acc-race-session-reader-frontend/src-tauri/Cargo.toml ./acc-race-session-reader-frontend/src-tauri/
+COPY acc-race-session-reader-frontend/src-tauri/src ./acc-race-session-reader-frontend/src-tauri/src
 
 RUN cargo chef prepare --recipe-path recipe.json
 

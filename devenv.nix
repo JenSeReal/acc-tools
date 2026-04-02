@@ -12,9 +12,7 @@
 
   languages.rust = {
     enable = true;
-    channel = "stable";
-    version = "1.94.0";
-    targets = ["wasm32-unknown-unknown"];
+    toolchainFile = ./rust-toolchain.toml;
   };
 
   # git-hooks.hooks = {

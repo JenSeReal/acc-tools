@@ -12,33 +12,33 @@ where
     let on_session_loaded = on_session_loaded.clone();
     let input: HtmlInputElement = ev.target().unwrap().dyn_into().unwrap();
 
-    if let Some(files) = input.files() {
-      if let Some(file) = files.get(0) {
-        let reader = FileReader::new().unwrap();
-        let reader_clone = reader.clone();
+    if let Some(files) = input.files()
+      && let Some(file) = files.get(0)
+    {
+      let reader = FileReader::new().unwrap();
+      let reader_clone = reader.clone();
 
-        let onload = Closure::wrap(Box::new(move |_: Event| {
-          let result = reader_clone.result().unwrap();
-          let array_buffer = result.dyn_into::<js_sys::ArrayBuffer>().unwrap();
-          let uint8_array = js_sys::Uint8Array::new(&array_buffer);
-          let bytes = uint8_array.to_vec();
+      let onload = Closure::wrap(Box::new(move |_: Event| {
+        let result = reader_clone.result().unwrap();
+        let array_buffer = result.dyn_into::<js_sys::ArrayBuffer>().unwrap();
+        let uint8_array = js_sys::Uint8Array::new(&array_buffer);
+        let bytes = uint8_array.to_vec();
 
-          match Session::try_from(bytes.as_slice()) {
-            Ok(session) => {
-              on_error.set(None);
-              on_session_loaded(session);
-            }
-            Err(e) => {
-              on_error.set(Some(format!("Failed to parse session: {}", e)));
-            }
+        match Session::try_from(bytes.as_slice()) {
+          Ok(session) => {
+            on_error.set(None);
+            on_session_loaded(session);
           }
-        }) as Box<dyn FnMut(_)>);
+          Err(e) => {
+            on_error.set(Some(format!("Failed to parse session: {}", e)));
+          }
+        }
+      }) as Box<dyn FnMut(_)>);
 
-        reader.set_onload(Some(onload.as_ref().unchecked_ref()));
-        onload.forget();
+      reader.set_onload(Some(onload.as_ref().unchecked_ref()));
+      onload.forget();
 
-        reader.read_as_array_buffer(&file).unwrap();
-      }
+      reader.read_as_array_buffer(&file).unwrap();
     }
   };
 

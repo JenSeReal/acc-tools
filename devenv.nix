@@ -15,10 +15,10 @@
     toolchainFile = ./rust-toolchain.toml;
   };
 
-  # git-hooks.hooks = {
-  #   rustfmt.enable = true;
-  #   clippy.enable = true;
-  # };
+  git-hooks.hooks = {
+    rustfmt.enable = true;
+    clippy.enable = true;
+  };
 
   env.GSETTINGS_SCHEMA_DIR = "${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}/glib-2.0/schemas";
 }

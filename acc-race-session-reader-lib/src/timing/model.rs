@@ -2,20 +2,30 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Timing {
-  #[serde(rename = "lastLap")]
+  #[serde(rename = "lastLap", default)]
   pub last_lap: u32,
-  #[serde(rename = "lastSplits")]
+  #[serde(rename = "lastSplits", default)]
   pub last_splits: Vec<u32>,
-  #[serde(rename = "bestLap")]
+  #[serde(rename = "bestLap", default)]
   pub best_lap: u32,
-  #[serde(rename = "bestSplits")]
+  #[serde(rename = "bestSplits", default)]
   pub best_splits: Vec<u32>,
-  #[serde(rename = "totalTime")]
+  #[serde(rename = "totalTime", default)]
   pub total_time: u64,
-  #[serde(rename = "lapCount")]
+  #[serde(rename = "lapCount", default)]
   pub lap_count: u32,
-  #[serde(rename = "lastSplitId")]
+  #[serde(rename = "lastSplitId", default)]
   pub last_split_id: u32,
+  /// Average lap time (used in qualifying results from PDF)
+  #[serde(
+    rename = "averageLap",
+    default,
+    skip_serializing_if = "Option::is_none"
+  )]
+  pub average_lap: Option<u32>,
+  /// Result lap time (used in qualifying results from PDF)
+  #[serde(rename = "resultLap", default, skip_serializing_if = "Option::is_none")]
+  pub result_lap: Option<u32>,
 }
 
 impl Timing {

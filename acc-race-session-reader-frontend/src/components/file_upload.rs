@@ -1,3 +1,5 @@
+use acc_race_session_reader_lib::loaded_session::LoadedSession;
+use acc_race_session_reader_lib::parser::{PdfParser, SessionParser};
 use acc_race_session_reader_lib::session::model::Session;
 use leptos::prelude::*;
 use wasm_bindgen::prelude::*;
@@ -6,7 +8,7 @@ use web_sys::{Event, FileReader, HtmlInputElement};
 #[component]
 pub fn FileUpload<F>(on_session_loaded: F, on_error: WriteSignal<Option<String>>) -> impl IntoView
 where
-  F: Fn(Session) + 'static + Clone,
+  F: Fn(LoadedSession) + 'static + Clone,
 {
   let on_change = move |ev: Event| {
     let on_session_loaded = on_session_loaded.clone();
@@ -15,6 +17,9 @@ where
     if let Some(files) = input.files()
       && let Some(file) = files.get(0)
     {
+      let file_name = file.name();
+      let is_pdf = file_name.to_lowercase().ends_with(".pdf");
+
       let reader = FileReader::new().unwrap();
       let reader_clone = reader.clone();
 
@@ -24,13 +29,27 @@ where
         let uint8_array = js_sys::Uint8Array::new(&array_buffer);
         let bytes = uint8_array.to_vec();
 
-        match Session::try_from(bytes.as_slice()) {
-          Ok(session) => {
-            on_error.set(None);
-            on_session_loaded(session);
+        if is_pdf {
+          // Parse as PDF qualifying results
+          match PdfParser::parse(&bytes) {
+            Ok(qualifying) => {
+              on_error.set(None);
+              on_session_loaded(LoadedSession::from_qualifying(&qualifying));
+            }
+            Err(e) => {
+              on_error.set(Some(format!("Failed to parse PDF: {}", e)));
+            }
           }
-          Err(e) => {
-            on_error.set(Some(format!("Failed to parse session: {}", e)));
+        } else {
+          // Parse as JSON session
+          match Session::try_from(bytes.as_slice()) {
+            Ok(session) => {
+              on_error.set(None);
+              on_session_loaded(LoadedSession::from_session(&session));
+            }
+            Err(e) => {
+              on_error.set(Some(format!("Failed to parse session: {}", e)));
+            }
           }
         }
       }) as Box<dyn FnMut(_)>);
@@ -47,7 +66,7 @@ where
           <label class="file-upload-label">
               <input
                   type="file"
-                  accept=".json"
+                  accept=".json,.pdf"
                   on:change=on_change
                   class="file-input"
               />

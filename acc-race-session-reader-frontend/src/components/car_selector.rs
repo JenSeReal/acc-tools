@@ -1,13 +1,12 @@
 use acc_race_session_reader_lib::car::car_model::CarModel;
-use acc_race_session_reader_lib::driver_stats::get_session_car_models;
-use acc_race_session_reader_lib::session::model::Session;
+use acc_race_session_reader_lib::loaded_session::LoadedSession;
 use leptos::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::HtmlSelectElement;
 
 #[component]
 pub fn CarSelector(
-  session: ReadSignal<Option<Session>>,
+  session: ReadSignal<Option<LoadedSession>>,
   selected_car_model: WriteSignal<Option<CarModel>>,
 ) -> impl IntoView {
   let on_change = move |ev: web_sys::Event| {
@@ -27,7 +26,7 @@ pub fn CarSelector(
               <option value="">"All Cars"</option>
               {move || {
                   session.get().map(|s| {
-                      get_session_car_models(&s).into_iter().map(|car_model| {
+                      s.car_models.iter().map(|car_model| {
                           let id = car_model.to_id();
                           let label = car_model.name().to_string();
                           view! {

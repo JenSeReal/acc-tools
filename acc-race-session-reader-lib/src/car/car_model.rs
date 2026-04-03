@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::fmt;
+use std::str::FromStr;
 
 /// ACC car model IDs mapped to human-readable names
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -264,5 +265,107 @@ impl From<u32> for CarModel {
 impl From<CarModel> for u32 {
   fn from(model: CarModel) -> Self {
     model.to_id()
+  }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CarModelParseError {
+  pub model_name: String,
+}
+
+impl fmt::Display for CarModelParseError {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "Unknown car model: {}", self.model_name)
+  }
+}
+
+impl std::error::Error for CarModelParseError {}
+
+impl FromStr for CarModel {
+  type Err = CarModelParseError;
+
+  fn from_str(s: &str) -> Result<Self, Self::Err> {
+    // Normalize: lowercase, remove extra whitespace
+    let normalized: String = s
+      .split_whitespace()
+      .collect::<Vec<_>>()
+      .join(" ")
+      .to_lowercase();
+
+    match normalized.as_str() {
+      // GT3 cars
+      "porsche 991 gt3 r" => Ok(CarModel::Porsche991GT3R),
+      "mercedes-amg gt3" | "mercedes amg gt3" => Ok(CarModel::MercedesAMGGT3),
+      "ferrari 488 gt3" => Ok(CarModel::Ferrari488GT3),
+      "audi r8 lms" => Ok(CarModel::AudiR8LMS),
+      "lamborghini huracán gt3" | "lamborghini huracan gt3" => Ok(CarModel::LamborghiniHuracanGT3),
+      "mclaren 650s gt3" => Ok(CarModel::McLaren650SGT3),
+      "nissan gt-r nismo gt3" | "nissan gtr nismo gt3" => Ok(CarModel::NissanGTRNismoGT3),
+      "bmw m6 gt3" => Ok(CarModel::BMWM6GT3),
+      "bentley continental gt3 2018" => Ok(CarModel::BentleyContinentalGT32018),
+      "porsche 991 ii gt3 cup" => Ok(CarModel::Porsche991IIGT3Cup),
+      "nissan gt-r nismo gt3 2018" | "nissan gtr nismo gt3 2018" => {
+        Ok(CarModel::NissanGTRNismoGT32018)
+      }
+      "bentley continental gt3 2016" => Ok(CarModel::BentleyContinentalGT32016),
+      "amr v12 vantage gt3" => Ok(CarModel::AMRV12VantageGT3),
+      "reiter engineering r-ex gt3" | "reiter engineering rex gt3" => {
+        Ok(CarModel::ReiterEngineeringREXGT3)
+      }
+      "emil frey jaguar g3" => Ok(CarModel::EmilFreyJaguarG3),
+      "lexus rc f gt3" => Ok(CarModel::LexusRCFGT3),
+      "lamborghini huracán gt3 evo" | "lamborghini huracan gt3 evo" => {
+        Ok(CarModel::LamborghiniHuracanGT3Evo)
+      }
+      "honda nsx gt3" => Ok(CarModel::HondaNSXGT3),
+      "lamborghini huracán supertrofeo" | "lamborghini huracan supertrofeo" => {
+        Ok(CarModel::LamborghiniHuracanSuperTrofeo)
+      }
+      "audi r8 lms evo" => Ok(CarModel::AudiR8LMSEvo),
+      "amr v8 vantage" => Ok(CarModel::AMRV8Vantage),
+      "honda nsx gt3 evo" => Ok(CarModel::HondaNSXGT3Evo),
+      "mclaren 720s gt3" => Ok(CarModel::McLaren720SGT3),
+      "porsche 991 ii gt3 r" => Ok(CarModel::Porsche991IIGT3R),
+      "ferrari 488 gt3 evo" => Ok(CarModel::Ferrari488GT3Evo),
+      "mercedes-amg gt3 2020" | "mercedes amg gt3 2020" => Ok(CarModel::MercedesAMGGT32020),
+      "ferrari 488 challenge evo" => Ok(CarModel::Ferrari488ChallengeEvo),
+      "bmw m2 cup" => Ok(CarModel::BMWM2Cup),
+      "porsche 992 gt3 cup" => Ok(CarModel::Porsche992GT3Cup),
+      "lamborghini huracán supertrofeo evo2" | "lamborghini huracan supertrofeo evo2" => {
+        Ok(CarModel::LamborghiniHuracanSuperTrofeoEvo2)
+      }
+      "bmw m4 gt3" => Ok(CarModel::BMWM4GT3),
+      "audi r8 lms evo ii" | "audi r8 lms evo 2" => Ok(CarModel::AudiR8LMSEvoII),
+      "ferrari 296 gt3" => Ok(CarModel::Ferrari296GT3),
+      "lamborghini huracán gt3 evo 2"
+      | "lamborghini huracan gt3 evo 2"
+      | "lamborghini huracán gt3 evo2"
+      | "lamborghini huracan gt3 evo2" => Ok(CarModel::LamborghiniHuracanGT3Evo2),
+      "porsche 992 gt3 r" => Ok(CarModel::Porsche992GT3R),
+      "mclaren 720s gt3 evo" | "mclaren 720s gt3 evo 2023" => Ok(CarModel::McLaren720SGT3Evo),
+      "ford mustang gt3" => Ok(CarModel::FordMustangGT3),
+      // GT2 cars
+      "porsche gt2 rs" | "porsche 911 gt2 rs" => Ok(CarModel::PorscheGT2RS),
+      "audi r8 lms gt2" => Ok(CarModel::AudiR8LMSGT2),
+      "ktm x-bow gt2" | "ktm xbow gt2" => Ok(CarModel::KTMXBowGT2),
+      "maserati mc gt2" => Ok(CarModel::MaseratiMCGT2),
+      "mercedes-amg gt2" | "mercedes amg gt2" => Ok(CarModel::MercedesAMGGT2),
+      // GT4 cars
+      "alpine a110 gt4" => Ok(CarModel::AlpineA110GT4),
+      "amr v8 vantage gt4" => Ok(CarModel::AMRV8VantageGT4),
+      "audi r8 lms gt4" => Ok(CarModel::AudiR8LMSGT4),
+      "bmw m4 gt4" => Ok(CarModel::BMWM4GT4),
+      "chevrolet camaro gt4.r" | "chevrolet camaro gt4 r" => Ok(CarModel::ChevroletCamaroGT4R),
+      "ginetta g55 gt4" => Ok(CarModel::GinettaG55GT4),
+      "ktm x-bow gt4" | "ktm xbow gt4" => Ok(CarModel::KTMXBowGT4),
+      "maserati granturismo mc sport" => Ok(CarModel::MaseratiGranTurismoMCSport),
+      "mclaren 570s gt4" => Ok(CarModel::McLaren570SGT4),
+      "mercedes-amg gt4" | "mercedes amg gt4" => Ok(CarModel::MercedesAMGGT4),
+      "porsche 718 cayman gt4 mr" => Ok(CarModel::Porsche718CaymanGT4MR),
+      "toyota gr supra gt4" => Ok(CarModel::ToyotaGRSupraGT4),
+      _ => Err(CarModelParseError {
+        model_name: s.to_string(),
+      }),
+    }
   }
 }

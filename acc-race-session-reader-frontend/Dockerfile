@@ -15,14 +15,14 @@ WORKDIR /app
 # ============================================================================
 FROM chef AS planner
 
-# Copy workspace files
-COPY Cargo.toml Cargo.lock ./
+# Copy workspace files (excluding src-tauri which requires native platform support)
+COPY Cargo.lock ./
 COPY acc-race-session-reader-lib ./acc-race-session-reader-lib
 COPY acc-race-session-reader-frontend/Cargo.toml ./acc-race-session-reader-frontend/
 COPY acc-race-session-reader-frontend/src ./acc-race-session-reader-frontend/src
-# Copy src-tauri to satisfy workspace member requirement (not built for web)
-COPY acc-race-session-reader-frontend/src-tauri/Cargo.toml ./acc-race-session-reader-frontend/src-tauri/
-COPY acc-race-session-reader-frontend/src-tauri/src ./acc-race-session-reader-frontend/src-tauri/src
+
+# Create a workspace Cargo.toml without the Tauri member (tao doesn't support WASM)
+RUN printf '[workspace]\nresolver = "3"\nmembers = ["acc-race-session-reader-lib", "acc-race-session-reader-frontend"]\n\n[workspace.package]\nedition = "2024"\n' > Cargo.toml
 
 RUN cargo chef prepare --recipe-path recipe.json
 
@@ -38,10 +38,19 @@ RUN cargo install trunk --locked
 COPY --from=planner /app/recipe.json recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json --target wasm32-unknown-unknown
 
-# Copy workspace files
-COPY Cargo.toml Cargo.lock ./
+# Copy workspace files (excluding src-tauri)
+COPY Cargo.lock ./
 COPY acc-race-session-reader-lib ./acc-race-session-reader-lib
-COPY acc-race-session-reader-frontend ./acc-race-session-reader-frontend
+COPY acc-race-session-reader-frontend/Cargo.toml    ./acc-race-session-reader-frontend/
+COPY acc-race-session-reader-frontend/src           ./acc-race-session-reader-frontend/src
+COPY acc-race-session-reader-frontend/index.html    ./acc-race-session-reader-frontend/
+COPY acc-race-session-reader-frontend/Trunk.toml    ./acc-race-session-reader-frontend/
+COPY acc-race-session-reader-frontend/nginx.conf    ./acc-race-session-reader-frontend/
+COPY acc-race-session-reader-frontend/styles.css    ./acc-race-session-reader-frontend/
+COPY acc-race-session-reader-frontend/public        ./acc-race-session-reader-frontend/public
+
+# Create a workspace Cargo.toml without the Tauri member
+RUN printf '[workspace]\nresolver = "3"\nmembers = ["acc-race-session-reader-lib", "acc-race-session-reader-frontend"]\n\n[workspace.package]\nedition = "2024"\n' > Cargo.toml
 
 # Build the frontend with trunk
 WORKDIR /app/acc-race-session-reader-frontend

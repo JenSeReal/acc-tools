@@ -22,9 +22,6 @@ devenv.*
 # CI/CD
 .github/
 
-# Tauri (not needed for web build)
-acc-race-session-reader-frontend/src-tauri/
-
 # Documentation
 *.md
 !README.md

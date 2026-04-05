@@ -26,6 +26,9 @@ devenv.*
 *.md
 !README.md
 
+# Generated CSS
+stylance*.css
+
 # Misc
 .DS_Store
 Thumbs.db

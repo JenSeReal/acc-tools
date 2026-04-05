@@ -9,14 +9,17 @@ devenv.local.yaml
 # pre-commit
 .pre-commit-config.yaml
 
-
-# Added by cargo
-
+# Cargo
 /target
 
+# Node.js
+node_modules/
 
-# Added by cargo
-#
-# already existing elements were commented out
+# Generated CSS
+acc-session-reader/tailwind-output.css
 
-#/target
+# Build artifacts
+acc-session-reader/dist/
+.helm-packages/
+
+.claude

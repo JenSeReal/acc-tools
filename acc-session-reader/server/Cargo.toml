@@ -1,0 +1,18 @@
+[package]
+name = "acc-session-reader-server"
+version = "0.1.0"
+edition.workspace = true
+
+[[bin]]
+name = "acc-session-reader-server"
+path = "src/main.rs"
+
+[dependencies]
+leptos = { version = "0.8", features = ["ssr"] }
+leptos_axum = "0.8"
+leptos_router = { version = "0.8", features = ["ssr"] }
+axum = "0.8"
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+tower = "0.5"
+tower-http = { version = "0.6", features = ["fs"] }
+acc-session-reader-app = { path = "../app", features = ["ssr"] }

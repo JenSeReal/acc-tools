@@ -1,6 +1,12 @@
 [workspace]
 resolver = "3"
-members = ["acc-race-session-reader-lib", "acc-race-session-reader-frontend", "acc-race-session-reader-frontend/src-tauri"]
+members = [
+    "acc-session-reader/lib",
+    "acc-session-reader/app",
+    "acc-session-reader/server",
+    "acc-session-reader/src-tauri",
+    "acc-ui-components",
+]
 
 [workspace.package]
 edition = "2024"

@@ -1,0 +1,25 @@
+.acc-ui-components-copy-clipboard-btn-2478103 {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background-color: #396cd8;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.25s;
+}
+
+.acc-ui-components-copy-clipboard-btn-2478103:hover {
+    background-color: #2d5bb8;
+}
+
+.acc-ui-components-icon-2478103 {
+    font-size: 1.1em;
+}
+
+.acc-ui-components-copied-2478103 {
+    background-color: #2a7d2a;
+}

@@ -1,8 +1,9 @@
 replicaCount: 1
 
 image:
-  repository: ghcr.io/OWNER/acc-race-session-reader-frontend
+  repository: ghcr.io/OWNER/acc-session-viewer
   pullPolicy: IfNotPresent
+  # Defaults to Chart.appVersion if not set
   tag: ""
 
 imagePullSecrets: []

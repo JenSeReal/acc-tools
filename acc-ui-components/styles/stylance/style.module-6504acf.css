@@ -1,0 +1,29 @@
+.acc-ui-components-car-selector-6504acf {
+    margin: 20px auto;
+    max-width: 600px;
+}
+
+.acc-ui-components-car-selector-6504acf label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.acc-ui-components-car-select-6504acf {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    font-size: 1em;
+    font-family: inherit;
+    background-color: #ffffff;
+    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+}
+
+@media (prefers-color-scheme: dark) {
+    .acc-ui-components-car-select-6504acf {
+        color: #ffffff;
+        background-color: #0f0f0f98;
+    }
+}

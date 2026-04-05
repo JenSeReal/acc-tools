@@ -1,0 +1,249 @@
+@use "../path/to/prelude" as *;
+
+.acc-ui-components-car-selector-6504acf {
+    margin: 20px auto;
+    max-width: 600px;
+}
+
+.acc-ui-components-car-selector-6504acf label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.acc-ui-components-car-select-6504acf {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    font-size: 1em;
+    font-family: inherit;
+    background-color: #ffffff;
+    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+}
+
+@media (prefers-color-scheme: dark) {
+    .acc-ui-components-car-select-6504acf {
+        color: #ffffff;
+        background-color: #0f0f0f98;
+    }
+}
+
+
+.acc-ui-components-copy-clipboard-btn-2478103 {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background-color: #396cd8;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.25s;
+}
+
+.acc-ui-components-copy-clipboard-btn-2478103:hover {
+    background-color: #2d5bb8;
+}
+
+.acc-ui-components-icon-2478103 {
+    font-size: 1.1em;
+}
+
+.acc-ui-components-copied-2478103 {
+    background-color: #2a7d2a;
+}
+
+
+.acc-ui-components-driver-stats-d009a9d {
+    margin: 20px auto;
+    max-width: 900px;
+    padding: 0 20px;
+}
+
+.acc-ui-components-driver-stats-d009a9d h3 {
+    margin-bottom: 16px;
+}
+
+.acc-ui-components-export-toolbar-d009a9d {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 16px;
+    max-width: 900px;
+}
+
+.acc-ui-components-stats-table-d009a9d {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 0.95em;
+}
+
+.acc-ui-components-stats-table-d009a9d th,
+.acc-ui-components-stats-table-d009a9d td {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.acc-ui-components-stats-table-d009a9d th {
+    font-weight: 600;
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.acc-ui-components-stats-table-d009a9d tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.acc-ui-components-race-number-d009a9d {
+    font-weight: 600;
+    text-align: center;
+}
+
+.acc-ui-components-driver-name-d009a9d {
+    font-weight: 500;
+}
+
+.acc-ui-components-short-name-d009a9d {
+    color: #666;
+    font-size: 0.9em;
+}
+
+.acc-ui-components-team-name-d009a9d {
+    color: #555;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.acc-ui-components-laptime-d009a9d {
+    font-family: monospace;
+    font-size: 0.95em;
+}
+
+.acc-ui-components-fastest-d009a9d {
+    color: #2a7d2a;
+    font-weight: 600;
+}
+
+.acc-ui-components-lap-count-d009a9d {
+    text-align: center;
+}
+
+.acc-ui-components-seven-valid-d009a9d {
+    text-align: center;
+    font-weight: 600;
+}
+
+.acc-ui-components-seven-valid-yes-d009a9d {
+    text-align: center;
+    font-weight: 600;
+    color: #2a7d2a;
+}
+
+.acc-ui-components-seven-valid-no-d009a9d {
+    text-align: center;
+    font-weight: 600;
+    color: #888;
+}
+
+.acc-ui-components-no-selection-d009a9d,
+.acc-ui-components-no-data-d009a9d {
+    color: #666;
+    font-style: italic;
+}
+
+@media (prefers-color-scheme: dark) {
+    .acc-ui-components-stats-table-d009a9d th,
+    .acc-ui-components-stats-table-d009a9d td {
+        border-bottom-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .acc-ui-components-stats-table-d009a9d th {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .acc-ui-components-stats-table-d009a9d tbody tr:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .acc-ui-components-short-name-d009a9d {
+        color: #aaa;
+    }
+
+    .acc-ui-components-team-name-d009a9d {
+        color: #bbb;
+    }
+
+    .acc-ui-components-fastest-d009a9d {
+        color: #5fd35f;
+    }
+
+    .acc-ui-components-seven-valid-yes-d009a9d {
+        color: #5fd35f;
+    }
+
+    .acc-ui-components-seven-valid-no-d009a9d {
+        color: #888;
+    }
+
+    .acc-ui-components-no-selection-d009a9d,
+    .acc-ui-components-no-data-d009a9d {
+        color: #999;
+    }
+}
+
+
+.acc-ui-components-file-upload-460f217 {
+    margin: 20px 0;
+}
+
+.acc-ui-components-file-input-460f217 {
+    display: none;
+}
+
+.acc-ui-components-file-upload-label-460f217 {
+    cursor: pointer;
+}
+
+.acc-ui-components-file-upload-button-460f217 {
+    display: inline-block;
+    padding: 12px 24px;
+    background-color: #396cd8;
+    color: white;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: background-color 0.25s;
+}
+
+.acc-ui-components-file-upload-button-460f217:hover {
+    background-color: #2d5bb8;
+}
+
+
+.acc-ui-components-session-info-3d3356e {
+    background-color: rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    border-radius: 8px;
+    margin: 20px auto;
+    max-width: 600px;
+    text-align: left;
+}
+
+.acc-ui-components-session-info-3d3356e h2 {
+    margin-top: 0;
+    text-align: center;
+}
+
+.acc-ui-components-session-info-3d3356e p {
+    margin: 8px 0;
+}
+
+@media (prefers-color-scheme: dark) {
+    .acc-ui-components-session-info-3d3356e {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+}

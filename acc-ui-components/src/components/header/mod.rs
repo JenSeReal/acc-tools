@@ -44,23 +44,38 @@ pub fn use_logo_visibility() -> ReadSignal<bool> {
   {
     use leptos::wasm_bindgen::JsCast;
     use leptos::wasm_bindgen::closure::Closure;
+    use std::cell::RefCell;
+    use std::rc::Rc;
 
     Effect::new(move |_| {
       if logo_visible.get() {
         return;
       }
 
+      // Poll every 100ms until splash has played
+      let interval_id = Rc::new(RefCell::new(None::<i32>));
+      let interval_id_clone = interval_id.clone();
+
       let check_splash = Closure::wrap(Box::new(move || {
         if has_splash_played() {
           set_logo_visible.set(true);
+          // Clear the interval
+          if let Some(id) = *interval_id_clone.borrow() {
+            if let Some(window) = web_sys::window() {
+              window.clear_interval_with_handle(id);
+            }
+          }
         }
       }) as Box<dyn Fn()>);
 
       if let Some(window) = web_sys::window() {
-        let _ = window.set_timeout_with_callback_and_timeout_and_arguments_0(
-          check_splash.as_ref().unchecked_ref(),
-          1350,
-        );
+        let id = window
+          .set_interval_with_callback_and_timeout_and_arguments_0(
+            check_splash.as_ref().unchecked_ref(),
+            100,
+          )
+          .ok();
+        *interval_id.borrow_mut() = id;
       }
 
       check_splash.forget();

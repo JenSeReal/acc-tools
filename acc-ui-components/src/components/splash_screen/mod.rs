@@ -63,7 +63,7 @@ pub fn SplashScreen(
       }
 
       if is_loaded.get() && !animation_complete.get() {
-        // Wait for the exit animation duration (1200ms) plus a small buffer
+        // Wait for the exit animation duration (1000ms) plus a small buffer
         let timeout_callback = Closure::wrap(Box::new(move || {
           set_animation_complete.set(true);
           mark_splash_played();
@@ -72,7 +72,7 @@ pub fn SplashScreen(
         if let Some(window) = leptos::web_sys::window() {
           let _ = window.set_timeout_with_callback_and_timeout_and_arguments_0(
             timeout_callback.as_ref().unchecked_ref(),
-            1300,
+            1100,
           );
         }
 
@@ -109,9 +109,9 @@ pub fn SplashScreen(
         <img
           src=logo_src
           alt="Loading..."
-          class="h-32 w-32 object-contain"
+          class="h-48 w-48 object-contain"
           class:animate-breathing=move || !is_loaded.get()
-          class:animate-exit-right=move || is_loaded.get()
+          class:animate-zoom-in=move || is_loaded.get()
         />
       </div>
 

@@ -72,6 +72,9 @@ jobs:
         run: echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
       - name: Package and push Helm charts to GHCR
         run: |
+          # Convert repository owner to lowercase for OCI registry
+          REPO_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+
           for chart in charts/*/; do
             chart_name=$(basename "$chart")
             echo "Packaging $chart_name..."
@@ -81,5 +84,5 @@ jobs:
             pkg_file=$(ls .helm-packages/${chart_name}-*.tgz | head -1)
 
             echo "Pushing $pkg_file to ghcr.io..."
-            helm push "$pkg_file" oci://ghcr.io/${{ github.repository_owner }}/charts
+            helm push "$pkg_file" oci://ghcr.io/${REPO_OWNER}/charts
           done

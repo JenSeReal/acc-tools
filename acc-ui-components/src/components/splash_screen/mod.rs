@@ -51,7 +51,7 @@ pub fn SplashScreen(
   // Track animation state: false = showing logo, true = showing content
   let (animation_complete, set_animation_complete) = signal(skip_splash);
 
-  // When loaded, wait for zoom animation to finish before showing content
+  // When loaded, wait for exit animation to finish before showing content
   #[cfg(any(feature = "csr", feature = "hydrate"))]
   {
     use leptos::wasm_bindgen::JsCast;
@@ -63,7 +63,7 @@ pub fn SplashScreen(
       }
 
       if is_loaded.get() && !animation_complete.get() {
-        // Wait for the zoom animation duration (600ms) plus a small buffer
+        // Wait for the exit animation duration (1200ms) plus a small buffer
         let timeout_callback = Closure::wrap(Box::new(move || {
           set_animation_complete.set(true);
           mark_splash_played();
@@ -72,7 +72,7 @@ pub fn SplashScreen(
         if let Some(window) = leptos::web_sys::window() {
           let _ = window.set_timeout_with_callback_and_timeout_and_arguments_0(
             timeout_callback.as_ref().unchecked_ref(),
-            650,
+            1300,
           );
         }
 
@@ -109,9 +109,9 @@ pub fn SplashScreen(
         <img
           src=logo_src
           alt="Loading..."
-          class="h-48 w-48 object-contain"
+          class="h-32 w-32 object-contain"
           class:animate-breathing=move || !is_loaded.get()
-          class:animate-zoom-in=move || is_loaded.get()
+          class:animate-exit-right=move || is_loaded.get()
         />
       </div>
 

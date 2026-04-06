@@ -69,7 +69,7 @@ pub fn MobileMenu(
         <a href="/" class="flex items-center">
           <InteractiveLogo
             logo_src=logo_src
-            size="h-16 w-16".to_string()
+            size=Signal::derive(|| "h-16 w-16".to_string())
           />
         </a>
       </div>

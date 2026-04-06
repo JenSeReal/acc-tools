@@ -10,15 +10,15 @@ pub fn InteractiveLogo(
   /// CSS classes for the container
   #[prop(default = "".to_string())]
   class: String,
-  /// Size classes for the logo (e.g., "h-24 w-24")
-  #[prop(default = "h-24 w-24".to_string())]
-  size: String,
+  /// Size classes for the logo (e.g., "h-24 w-24") - can be reactive
+  #[prop(into)]
+  size: Signal<String>,
 ) -> impl IntoView {
   view! {
     <img
       src=logo_src
       alt="Logo"
-      class=format!("{} {} object-contain", size, class)
+      class=move || format!("{} {} object-contain transition-all duration-300", size.get(), class)
     />
   }
 }

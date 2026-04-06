@@ -7,7 +7,7 @@ mod mobile_menu;
 pub use header_logo::HeaderLogo;
 pub use header_nav::{HeaderNav, HeaderNavLink};
 pub use header_title::HeaderTitle;
-pub use header_wrapper::Header;
+pub use header_wrapper::{Header, HeaderScrollContext};
 pub use mobile_menu::{MobileMenu, MobileMenuTrigger};
 
 use leptos::prelude::*;
@@ -60,10 +60,10 @@ pub fn use_logo_visibility() -> ReadSignal<bool> {
         if has_splash_played() {
           set_logo_visible.set(true);
           // Clear the interval
-          if let Some(id) = *interval_id_clone.borrow() {
-            if let Some(window) = web_sys::window() {
-              window.clear_interval_with_handle(id);
-            }
+          if let Some(id) = *interval_id_clone.borrow()
+            && let Some(window) = web_sys::window()
+          {
+            window.clear_interval_with_handle(id);
           }
         }
       }) as Box<dyn Fn()>);

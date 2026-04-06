@@ -6,3 +6,5 @@ pub use components::copy_to_clipboard_button::CopyToClipboardButton;
 pub use components::driver_stats::DriverStatsTable;
 pub use components::file_upload::FileUpload;
 pub use components::session_info::SessionInfo;
+pub use components::splash_screen::{SplashScreen, TimedSplashScreen};
+pub use components::title_bar::{TitleBar, TitleBarWithNav};

@@ -33,6 +33,7 @@ web-sys = { version = "0.3", features = [
     "HtmlSelectElement",
     "Navigator",
     "ProgressEvent",
+    "Storage",
     "Window",
 ], optional = true }
 

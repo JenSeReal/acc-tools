@@ -9,4 +9,5 @@ pub mod dropdown_menu;
 pub mod multi_select;
 pub mod select;
 // pub mod separator;
+pub mod navigation_menu;
 pub mod table;

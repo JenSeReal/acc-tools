@@ -6,50 +6,59 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Apex Predators Racing Theme - Dark mode by default */
 :root {
     --bottom__nav__height: 4rem;
     --radius: 0.625rem;
-    --background: oklch(100% 0 0);
-    --foreground: oklch(14.08% 0.004 285.82);
-    --card: oklch(100% 0 0);
-    --card-foreground: oklch(14.08% 0.004 285.82);
-    --popover: oklch(100% 0 0);
-    --popover-foreground: oklch(14.08% 0.004 285.82);
-    --primary: oklch(20.47% 0.006 285.88);
-    --primary-foreground: oklch(98.51% 0 0);
-    --secondary: oklch(96.76% 0.001 285.81);
-    --secondary-foreground: oklch(20.47% 0.006 285.88);
-    --muted: oklch(96.76% 0.001 285.81);
-    --muted-foreground: oklch(55.19% 0.014 285.94);
-    --accent: oklch(96.76% 0.001 285.81);
-    --accent-foreground: oklch(20.47% 0.006 285.88);
-    --destructive: oklch(57.71% 0.215 27.33);
-    --destructive-foreground: oklch(98.51% 0 0);
-    --border: oklch(91.97% 0.004 285.98);
-    --input: oklch(91.97% 0.004 285.98);
-    --ring: oklch(14.08% 0.004 285.82);
+    /* Dark racing theme inspired by logo colors */
+    --background: oklch(12% 0.01 285);
+    --foreground: oklch(95% 0 0);
+    --card: oklch(15% 0.01 285);
+    --card-foreground: oklch(95% 0 0);
+    --popover: oklch(15% 0.01 285);
+    --popover-foreground: oklch(95% 0 0);
+    /* Primary: Deep racing red from logo (#9F1927 / #AC1D25) */
+    --primary: oklch(45% 0.2 25);
+    --primary-foreground: oklch(98% 0 0);
+    /* Secondary: Dark charcoal */
+    --secondary: oklch(22% 0.01 285);
+    --secondary-foreground: oklch(95% 0 0);
+    /* Muted: Darker gray */
+    --muted: oklch(20% 0.01 285);
+    --muted-foreground: oklch(65% 0.01 285);
+    /* Accent: Brighter red for highlights */
+    --accent: oklch(50% 0.22 25);
+    --accent-foreground: oklch(98% 0 0);
+    /* Destructive: Keep red but slightly different */
+    --destructive: oklch(55% 0.25 30);
+    --destructive-foreground: oklch(98% 0 0);
+    /* Borders and inputs */
+    --border: oklch(25% 0.01 285);
+    --input: oklch(20% 0.01 285);
+    --ring: oklch(45% 0.2 25);
 }
 
-.dark {
-    --background: oklch(14.08% 0.004 285.82);
-    --foreground: oklch(98.51% 0 0);
-    --card: oklch(14.08% 0.004 285.82);
-    --card-foreground: oklch(98.51% 0 0);
-    --popover: oklch(14.08% 0.004 285.82);
-    --popover-foreground: oklch(98.51% 0 0);
-    --primary: oklch(98.51% 0 0);
-    --primary-foreground: oklch(20.47% 0.006 285.88);
-    --secondary: oklch(26.98% 0.006 285.88);
-    --secondary-foreground: oklch(98.51% 0 0);
-    --muted: oklch(26.98% 0.006 285.88);
-    --muted-foreground: oklch(71.19% 0.013 285.79);
-    --accent: oklch(26.98% 0.006 285.88);
-    --accent-foreground: oklch(98.51% 0 0);
-    --destructive: oklch(57.71% 0.215 27.33);
-    --destructive-foreground: oklch(98.51% 0 0);
-    --border: oklch(26.98% 0.006 285.88);
-    --input: oklch(26.98% 0.006 285.88);
-    --ring: oklch(84.15% 0.003 285.99);
+/* Light mode alternative */
+.light {
+    --background: oklch(98% 0 0);
+    --foreground: oklch(15% 0.01 285);
+    --card: oklch(100% 0 0);
+    --card-foreground: oklch(15% 0.01 285);
+    --popover: oklch(100% 0 0);
+    --popover-foreground: oklch(15% 0.01 285);
+    --primary: oklch(45% 0.2 25);
+    --primary-foreground: oklch(98% 0 0);
+    --secondary: oklch(95% 0.01 285);
+    --secondary-foreground: oklch(15% 0.01 285);
+    --muted: oklch(95% 0.01 285);
+    --muted-foreground: oklch(45% 0.01 285);
+    --accent: oklch(95% 0.02 25);
+    --accent-foreground: oklch(45% 0.2 25);
+    --destructive: oklch(55% 0.25 30);
+    --destructive-foreground: oklch(98% 0 0);
+    --border: oklch(90% 0.01 285);
+    --input: oklch(90% 0.01 285);
+    --ring: oklch(45% 0.2 25);
 }
 
 @theme inline {
@@ -105,4 +114,38 @@
     @media (width >= 640px) {
         padding-bottom: 0;
     }
+}
+
+/* Splash screen breathing animation */
+@keyframes breathing {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.08);
+    }
+}
+
+@utility animate-breathing {
+    animation: breathing 2s ease-in-out infinite;
+}
+
+/* Landing page zoom animation */
+@keyframes zoom-in {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(20);
+        opacity: 0;
+    }
+}
+
+@utility animate-zoom-in {
+    animation: zoom-in 600ms ease-in forwards;
+}
+
+@utility duration-600 {
+    transition-duration: 600ms;
 }

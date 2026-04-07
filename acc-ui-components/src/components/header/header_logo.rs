@@ -41,13 +41,13 @@ pub fn HeaderLogo(
   // Get whether header is collapsed
   let is_collapsed = move || scroll_ctx.map(|ctx| !ctx.is_at_top.get()).unwrap_or(false);
 
-  // Logo size - different when collapsed
+  // Logo size - different when collapsed, but always overflows
   let logo_size = Signal::derive(move || {
     if is_collapsed() {
-      // Collapsed: smaller logo, no overflow
-      "h-6 w-6".to_string()
+      // Collapsed: smaller logo, still overflows
+      "h-12 w-12 -my-2".to_string()
     } else {
-      // Expanded: larger logo with overflow
+      // Expanded: larger logo with more overflow
       "h-24 w-24 mt-2 -mb-10".to_string()
     }
   });

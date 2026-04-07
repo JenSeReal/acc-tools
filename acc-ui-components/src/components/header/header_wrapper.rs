@@ -65,8 +65,8 @@ pub fn Header(children: Children, #[prop(optional, into)] class: String) -> impl
       // At top: full width, no styling
       "transition-all duration-300".to_string()
     } else {
-      // Scrolled: floating island with margins, rounded corners, background
-      "transition-all duration-300 mx-8 rounded-full bg-card/95 backdrop-blur border border-border shadow-lg"
+      // Scrolled: floating island, at least 50% width, centered
+      "transition-all duration-300 mx-auto min-w-[50%] max-w-[70%] rounded-full bg-card/95 backdrop-blur border border-border shadow-lg"
         .to_string()
     }
   };
@@ -77,7 +77,7 @@ pub fn Header(children: Children, #[prop(optional, into)] class: String) -> impl
     if is_at_top.get() {
       format!("{} h-14 px-4 lg:px-6", base)
     } else {
-      format!("{} h-8 px-4", base)
+      format!("{} h-8 px-3", base)
     }
   };
 

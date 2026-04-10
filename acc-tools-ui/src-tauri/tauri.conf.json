@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "identifier": "one.jfp.acc-tools-ui",
   "build": {
-    "beforeDevCommand": "trunk serve --config ../Trunk.toml",
+    "beforeDevCommand": "trunk serve --config ./Trunk.toml",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "trunk build --config ../Trunk.toml",
+    "beforeBuildCommand": "trunk build --config ./Trunk.toml",
     "frontendDist": "../dist"
   },
   "app": {

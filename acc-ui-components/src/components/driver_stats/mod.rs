@@ -76,7 +76,7 @@ pub fn DriverStatsTable(
 
                       view! {
                         <DataTableRow>
-                          <DataTableCell class="font-mono">{race_number}</DataTableCell>
+                          <DataTableCell class="tabular-nums">{race_number}</DataTableCell>
                           <DataTableCell>
                             {driver_name}
                             <Show when=move || show_short_name>
@@ -84,8 +84,8 @@ pub fn DriverStatsTable(
                             </Show>
                           </DataTableCell>
                           <DataTableCell>{car_name}</DataTableCell>
-                          <DataTableCell class="font-mono text-green-600 font-medium">{fastest}</DataTableCell>
-                          <DataTableCell class="font-mono">{average}</DataTableCell>
+                          <DataTableCell class="tabular-nums text-green-600 font-medium">{fastest}</DataTableCell>
+                          <DataTableCell class="tabular-nums">{average}</DataTableCell>
                           <DataTableCell class="font-mono">{lap_count}</DataTableCell>
                           <DataTableCell class=seven_class>{seven_text}</DataTableCell>
                         </DataTableRow>

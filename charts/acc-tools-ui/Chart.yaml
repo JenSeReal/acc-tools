@@ -1,0 +1,14 @@
+apiVersion: v2
+name: acc-tools-ui
+description: Helm chart for ACC Tools UI (session viewer + MoTeC telemetry viewer)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - acc
+  - assetto-corsa-competizione
+  - racing
+  - motec
+  - telemetry
+maintainers:
+  - name: maintainer

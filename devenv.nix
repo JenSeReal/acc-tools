@@ -1,4 +1,18 @@
-{pkgs, ...}: {
+{pkgs, ...}: let
+  # Compile GTK3 + desktop schemas into a single gschemas.compiled so GLib can
+  # find org.gtk.Settings.FileChooser (required by the GTK file-chooser dialog).
+  compiledSchemas =
+    pkgs.runCommand "gsettings-compiled" {
+      nativeBuildInputs = [pkgs.glib.dev];
+    } ''
+      mkdir -p $out/share/glib-2.0/schemas
+      cp ${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}/glib-2.0/schemas/*.gschema.xml \
+         $out/share/glib-2.0/schemas/
+      cp ${pkgs.gtk3}/share/gsettings-schemas/${pkgs.gtk3.name}/glib-2.0/schemas/*.gschema.xml \
+         $out/share/glib-2.0/schemas/
+      glib-compile-schemas $out/share/glib-2.0/schemas/
+    '';
+in {
   packages = with pkgs; [
     yaml-language-server
     vscode-css-languageserver
@@ -10,9 +24,15 @@
     trunk
     # Tauri dependencies for Linux
     webkitgtk_4_1
+    gtk3
     librsvg
     glib
     gsettings-desktop-schemas
+    # GStreamer plugins required by WebKitGTK for audio/video (splash screen sound)
+    gst_all_1.gstreamer
+    gst_all_1.gst-plugins-base
+    gst_all_1.gst-plugins-good
+    gst_all_1.gst-plugins-bad
   ];
 
   languages = {
@@ -42,15 +62,27 @@
 
   git-hooks.hooks = {
     rustfmt.enable = true;
-    # clippy.enable = true;
+    clippy = {
+      enable = true;
+      entry = pkgs.lib.mkForce (toString (pkgs.writeShellScript "clippy-pre-commit" ''
+        export CARGO_TARGET_DIR="target/pre-commit"
+        exec cargo clippy \
+          --workspace \
+          --exclude acc-tools-ui-tauri \
+          --all-targets \
+          --all-features \
+          -- -D warnings
+      ''));
+      pass_filenames = false;
+    };
   };
 
   scripts = {
-    "acc-session-reader:desktop".exec = "cd acc-session-reader && cargo tauri dev";
-    "acc-session-reader:desktop".description = "Run Tauri desktop app in dev mode";
+    "acc-tools-ui:desktop".exec = "cd acc-tools-ui && cargo tauri dev";
+    "acc-tools-ui:desktop".description = "Run ACC Tools desktop app in dev mode";
 
-    "acc-session-reader:web".exec = "trunk serve --config acc-session-reader/Trunk.toml";
-    "acc-session-reader:web".description = "Run trunk web server";
+    "acc-tools-ui:web".exec = "trunk serve --config acc-tools-ui/Trunk.toml";
+    "acc-tools-ui:web".description = "Run ACC Tools web server";
 
     "rust-ui:init".exec = "ui init";
     "rust-ui:init".description = "Initialize rust-ui in project";
@@ -75,13 +107,13 @@
     };
 
     "build:web" = {
-      exec = "trunk build --config acc-session-reader/Trunk.toml";
+      exec = "trunk build --config acc-tools-ui/Trunk.toml";
       description = "Build WASM frontend";
       after = ["build:css"];
     };
 
     "build:desktop" = {
-      exec = "cd acc-session-reader && cargo tauri build";
+      exec = "cd acc-tools-ui && cargo tauri build";
       description = "Build Tauri desktop app";
     };
 
@@ -111,5 +143,5 @@
     };
   };
 
-  env.GSETTINGS_SCHEMA_DIR = "${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}/glib-2.0/schemas";
+  env.GSETTINGS_SCHEMA_DIR = "${compiledSchemas}/share/glib-2.0/schemas";
 }

@@ -1,11 +1,11 @@
 [workspace]
 resolver = "3"
 members = [
-    "acc-session-reader/lib",
-    "acc-session-reader/app",
-    "acc-session-reader/server",
-    "acc-session-reader/src-tauri",
-    "acc-ui-components",
+    "acc-session-viewer/lib",
+    "acc-tools-ui-components",
+    "motec-viewer/lib",
+    "acc-tools-ui/app",
+    "acc-tools-ui/src-tauri",
 ]
 
 [workspace.package]

@@ -2,8 +2,8 @@
   "name": "acc-tools",
   "private": true,
   "scripts": {
-    "build:css": "npx @tailwindcss/cli -i ./acc-ui-components/style/tailwind.css -o ./acc-session-reader/tailwind-output.css --minify",
-    "watch:css": "npx @tailwindcss/cli -i ./acc-ui-components/style/tailwind.css -o ./acc-session-reader/tailwind-output.css --watch"
+    "build:css": "npx @tailwindcss/cli -i ./acc-tools-ui-components/style/tailwind.css -o ./acc-tools-ui/tailwind-output.css --minify",
+    "watch:css": "npx @tailwindcss/cli -i ./acc-tools-ui-components/style/tailwind.css -o ./acc-tools-ui/tailwind-output.css --watch"
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.2.2",

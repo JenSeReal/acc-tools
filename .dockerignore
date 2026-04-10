@@ -1,38 +1,6 @@
-# Build artifacts
 target/
-dist/
-
-# Git
-.git/
-.gitignore
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Development files
-.devenv/
-.direnv/
-.envrc
-devenv.*
-.pre-commit-config.yaml
-
-# CI/CD
-.github/
-
-# Documentation
-*.md
-!README.md
-
-# Generated CSS
-stylance*.css
-
-# Misc
-.DS_Store
-Thumbs.db
-*.log
-
-# Claude
-.claude/
+acc-tools-ui/dist/
+node_modules/
+.devenv*
+.direnv
+.git

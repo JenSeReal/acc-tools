@@ -1,0 +1,65 @@
+[package]
+name = "acc-tools-ui-components"
+version = "0.1.0"
+edition.workspace = true
+
+[package.metadata.leptos]
+tailwind-input-file = "style/tailwind.css"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+leptos = "0.8"
+leptos_router = "0.8"
+leptos_ui = "0.3"
+icons = { version = "0.18", features = ["leptos"] }
+tw_merge = "0.1"
+strum = { version = "0.27", features = ["derive"] }
+acc-session-viewer-lib = { path = "../acc-session-viewer/lib" }
+
+# CSR/hydrate dependencies
+wasm-bindgen = { version = "0.2", optional = true }
+wasm-bindgen-futures = { version = "0.4", optional = true }
+js-sys = { version = "0.3", optional = true }
+web-sys = { version = "0.3", features = [
+    "Blob",
+    "Clipboard",
+    "HtmlAudioElement",
+    "Document",
+    "DomRect",
+    "Element",
+    "Event",
+    "EventTarget",
+    "File",
+    "FileList",
+    "FileReader",
+    "HtmlInputElement",
+    "HtmlObjectElement",
+    "HtmlSelectElement",
+    "MouseEvent",
+    "Navigator",
+    "ProgressEvent",
+    "Storage",
+    "Window",
+], optional = true }
+
+[features]
+default = []
+csr = [
+    "leptos/csr",
+    "dep:wasm-bindgen",
+    "dep:wasm-bindgen-futures",
+    "dep:js-sys",
+    "dep:web-sys",
+]
+hydrate = [
+    "leptos/hydrate",
+    "dep:wasm-bindgen",
+    "dep:wasm-bindgen-futures",
+    "dep:js-sys",
+    "dep:web-sys",
+]
+ssr = [
+    "leptos/ssr",
+]

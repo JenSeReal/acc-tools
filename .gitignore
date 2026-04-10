@@ -11,26 +11,16 @@ devenv.local.yaml
 
 # Cargo
 /target
+/target/pre-commit
 
 # Node.js
 node_modules/
 
 # Generated CSS
-acc-session-reader/tailwind-output.css
+acc-tools-ui/tailwind-output.css
 
 # Build artifacts
-acc-session-reader/dist/
+acc-tools-ui/dist/
 .helm-packages/
 
 .claude
-
-# Devenv
-.devenv*
-devenv.local.nix
-devenv.local.yaml
-
-# direnv
-.direnv
-
-# pre-commit
-.pre-commit-config.yaml

@@ -4,8 +4,10 @@ on:
     branches:
       - main
     paths:
-      - 'acc-session-reader/**'
-      - 'acc-ui-components/**'
+      - 'acc-tools-ui/**'
+      - 'acc-session-viewer/lib/**'
+      - 'motec-viewer/lib/**'
+      - 'acc-tools-ui-components/**'
       - 'Cargo.toml'
       - 'Cargo.lock'
       - 'package.json'
@@ -14,15 +16,17 @@ on:
     branches:
       - main
     paths:
-      - 'acc-session-reader/**'
-      - 'acc-ui-components/**'
+      - 'acc-tools-ui/**'
+      - 'acc-session-viewer/lib/**'
+      - 'motec-viewer/lib/**'
+      - 'acc-tools-ui-components/**'
       - 'Cargo.toml'
       - 'Cargo.lock'
       - 'package.json'
   workflow_dispatch:
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: jensereal/acc-session-reader
+  IMAGE_NAME: jensereal/acc-tools-ui
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -46,7 +50,7 @@ jobs:
       - name: Check formatting
         run: cargo fmt --all -- --check
       - name: Run Clippy (excluding Tauri desktop app)
-        run: cargo clippy --workspace --exclude acc-session-reader-tauri --all-targets --all-features -- -D warnings
+        run: cargo clippy --workspace --exclude acc-tools-ui-tauri --all-targets --all-features -- -D warnings
   build:
     needs: lint
     runs-on: ubuntu-latest
@@ -87,7 +91,7 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: ./acc-session-reader/Dockerfile
+          file: ./acc-tools-ui/Dockerfile
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
           outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true

@@ -1,0 +1,16 @@
+[build]
+target = "./index.html"
+dist = "./dist"
+
+[watch]
+ignore = ["./src-tauri", "./dist"]
+
+[serve]
+port = 1421
+open = false
+
+# Tailwind CSS build hook
+[[hooks]]
+stage = "pre_build"
+command = "npx"
+command_arguments = ["@tailwindcss/cli", "-i", "../acc-ui-components/style/tailwind.css", "-o", "./tailwind-output.css", "--minify"]

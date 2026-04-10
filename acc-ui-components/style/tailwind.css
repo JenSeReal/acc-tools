@@ -148,10 +148,10 @@
         transform: scale(8) translateX(0);
     }
     60% {
-        transform: scale(10) translateX(0);
+        transform: scale(12) translateX(0);
     }
     100% {
-        transform: scale(7) translateX(250vw);
+        transform: scale(40) translateX(100vw);
     }
 }
 

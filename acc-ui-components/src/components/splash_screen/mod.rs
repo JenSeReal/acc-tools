@@ -42,7 +42,7 @@ pub fn SplashScreen(
   #[prop(default = "/logo.svg".to_string())]
   logo_src: String,
   /// Path to the sound file played during the exit animation (defaults to "/splash_scren.ogg")
-  #[prop(default = "/splash_scren.ogg".to_string())]
+  #[prop(default = "/splash_screen.ogg".to_string())]
   sound_src: String,
 ) -> impl IntoView {
   // Check if we should skip the splash (already played this session)
@@ -56,21 +56,21 @@ pub fn SplashScreen(
   // True once the user taps/clicks to trigger the exit animation
   let (clicked, set_clicked) = signal(false);
 
+  let audio_ref = NodeRef::<leptos::html::Audio>::new();
+
   // When the user clicks, play sound and wait for exit animation to finish
   #[cfg(any(feature = "csr", feature = "hydrate"))]
   {
     use leptos::wasm_bindgen::JsCast;
     use leptos::wasm_bindgen::closure::Closure;
 
-    let sound_src_clone = sound_src.clone();
     Effect::new(move |_| {
       if skip_splash {
         return;
       }
 
       if clicked.get() && !animation_complete.get() {
-        // Play sound at the start of the exit animation
-        if let Ok(audio) = web_sys::HtmlAudioElement::new_with_src(&sound_src_clone) {
+        if let Some(audio) = audio_ref.get() {
           let _ = audio.play();
         }
 
@@ -100,6 +100,7 @@ pub fn SplashScreen(
     let _ = sound_src;
     let _ = clicked;
     let _ = set_clicked;
+    let _ = audio_ref;
   }
 
   // If splash already played, just render children directly
@@ -114,6 +115,8 @@ pub fn SplashScreen(
 
   view! {
     <div class="relative min-h-screen w-full bg-background">
+      <audio node_ref=audio_ref src=sound_src preload="auto" />
+
       // Logo overlay with black background — clickable once loaded
       <div
         class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black transition-opacity duration-300"
@@ -168,8 +171,8 @@ pub fn TimedSplashScreen(
   /// Path to the logo image (defaults to "/logo.svg")
   #[prop(default = "/logo.svg".to_string())]
   logo_src: String,
-  /// Path to the sound file played during the exit animation (defaults to "/splash_scren.ogg")
-  #[prop(default = "/splash_scren.ogg".to_string())]
+  /// Path to the sound file played during the exit animation (defaults to "/splash_screen.ogg")
+  #[prop(default = "/splash_screen.ogg".to_string())]
   sound_src: String,
 ) -> impl IntoView {
   // Check if we should skip the splash

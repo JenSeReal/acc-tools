@@ -6,7 +6,8 @@ use leptos_router::path;
 
 use crate::layouts::MainLayout;
 use crate::pages::{
-  HomePage, SessionUploadPage, SessionViewPage, TelemetryUploadPage, TelemetryViewPage,
+  HomePage, SessionUploadPage, SessionViewPage, TelemetryLapsPage, TelemetryUploadPage,
+  TelemetryViewPage,
 };
 use crate::state::{SessionState, TelemetryState};
 
@@ -27,6 +28,7 @@ pub fn App() -> impl IntoView {
             <Route path=path!("/session/view") view=SessionViewPage />
             <Route path=path!("/telemetry") view=TelemetryUploadPage />
             <Route path=path!("/telemetry/view") view=TelemetryViewPage />
+            <Route path=path!("/telemetry/laps") view=TelemetryLapsPage />
           </Routes>
         </Router>
       </MainLayout>

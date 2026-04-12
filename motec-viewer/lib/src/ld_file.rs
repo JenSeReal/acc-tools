@@ -197,7 +197,7 @@ fn decode_channel(data: &[u8], data_ptr: usize, sample_count: u32, meta: ChanMet
       min: f64::NAN,
       max: f64::NAN,
       avg: f64::NAN,
-      preview: vec![],
+      samples: vec![],
     };
   }
 
@@ -206,11 +206,7 @@ fn decode_channel(data: &[u8], data_ptr: usize, sample_count: u32, meta: ChanMet
   let mut sum = 0.0f64;
   let mut min = f64::INFINITY;
   let mut max = f64::NEG_INFINITY;
-
-  // Build evenly-spaced preview (up to 256 points)
-  let preview_count = n.min(256);
-  let step = if n <= 256 { 1 } else { n / 256 };
-  let mut preview = Vec::with_capacity(preview_count);
+  let mut samples = Vec::with_capacity(n);
 
   for i in 0..n {
     let raw = read_raw_sample(blob, i, dtype_a, dtype);
@@ -222,9 +218,7 @@ fn decode_channel(data: &[u8], data_ptr: usize, sample_count: u32, meta: ChanMet
     if phys > max {
       max = phys;
     }
-    if i % step == 0 && preview.len() < 256 {
-      preview.push(phys);
-    }
+    samples.push(phys);
   }
 
   LdChannel {
@@ -236,7 +230,7 @@ fn decode_channel(data: &[u8], data_ptr: usize, sample_count: u32, meta: ChanMet
     min,
     max,
     avg: sum / n as f64,
-    preview,
+    samples,
   }
 }
 

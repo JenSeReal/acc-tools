@@ -1,9 +1,10 @@
 //! Parser for MoTeC .ldx lap-marker XML sidecar files.
 //!
-//! The .ldx file is UTF-8 XML.  The actual nesting depth varies between
-//! MoTeC versions, so this parser walks the entire tree looking for any
-//! element that has a `Time` attribute (value in microseconds) rather than
-//! relying on a fixed path.
+//! The .ldx file is UTF-8 XML.  The actual nesting depth and element style
+//! varies between MoTeC versions, so this parser handles both forms:
+//!
+//!   Attribute form:  <Marker Time="83400000" ... />
+//!   Element form:    <Time>83400000</Time>
 
 use quick_xml::Reader;
 use quick_xml::events::Event;
@@ -20,38 +21,77 @@ pub enum LdxError {
 
 /// Parse a .ldx XML file and return lap boundary information.
 ///
-/// Times are stored as microseconds in the `Time` attribute.  Returned
-/// `LapInfo` values are sorted by start time; `duration_s` is `None` for
-/// the last lap if the total session length is not known.
+/// Times are stored as microseconds.  Returned `LapInfo` values are sorted
+/// by start time; `duration_s` is `None` for the last lap.
 pub fn parse_ldx(data: &[u8]) -> Result<Vec<LapInfo>, LdxError> {
   let mut reader = Reader::from_reader(data);
   reader.config_mut().trim_text(true);
 
   let mut raw_times_us: Vec<i64> = Vec::new();
   let mut buf = Vec::new();
+  // Track whether the current element is a <Time> element so we can read
+  // its text content.
+  let mut inside_time_element = false;
 
   loop {
     match reader.read_event_into(&mut buf)? {
       Event::Eof => break,
+
+      // Opening or self-closing element — look for a Time attribute.
       Event::Start(ref e) | Event::Empty(ref e) => {
+        // Check if this element is named "Time"
+        inside_time_element = e.name().as_ref() == b"Time";
+
         for attr in e.attributes() {
           let attr = attr?;
           if attr.key.as_ref() == b"Time" {
             let val = attr.unescape_value().unwrap_or_default();
-            if let Ok(us) = val.trim().parse::<i64>() {
-              raw_times_us.push(us);
+            // Time values may be scientific notation (e.g. "1.62389e+08")
+            if let Ok(us) = val.trim().parse::<f64>() {
+              raw_times_us.push(us as i64);
             }
           }
         }
       }
+
+      // Text content inside a <Time>…</Time> element.
+      Event::Text(ref e) => {
+        if inside_time_element {
+          let val = e.unescape().unwrap_or_default();
+          if let Ok(us) = val.trim().parse::<f64>() {
+            raw_times_us.push(us as i64);
+          }
+          inside_time_element = false;
+        }
+      }
+
+      Event::End(_) => {
+        inside_time_element = false;
+      }
+
       _ => {}
     }
     buf.clear();
   }
 
   raw_times_us.sort_unstable();
+  // Deduplicate identical timestamps (some files emit start+end for same lap)
+  raw_times_us.dedup();
 
-  let laps: Vec<LapInfo> = raw_times_us
+  if raw_times_us.is_empty() {
+    return Ok(vec![]);
+  }
+
+  if raw_times_us.len() == 1 {
+    return Ok(vec![LapInfo {
+      lap_number: 1,
+      start_time_s: raw_times_us[0] as f64 * 1e-6,
+      duration_s: None,
+    }]);
+  }
+
+  // Build one LapInfo per consecutive pair of timestamps.
+  let mut result: Vec<LapInfo> = raw_times_us
     .windows(2)
     .enumerate()
     .map(|(i, w)| LapInfo {
@@ -61,39 +101,12 @@ pub fn parse_ldx(data: &[u8]) -> Result<Vec<LapInfo>, LdxError> {
     })
     .collect();
 
-  // Add the final lap (no duration)
-  if let Some(&last_us) = raw_times_us.last() {
-    if raw_times_us.len() >= 2 {
-      // Already covered by the windows() above – only add if there was a single marker
-    } else if raw_times_us.len() == 1 {
-      return Ok(vec![LapInfo {
-        lap_number: 1,
-        start_time_s: last_us as f64 * 1e-6,
-        duration_s: None,
-      }]);
-    }
-    // For multi-lap sessions, append the final partial lap
-    let _ = last_us; // used implicitly in last LapInfo below
-  }
+  // Append the final lap (starts at the last marker, duration unknown).
+  result.push(LapInfo {
+    lap_number: result.len() + 1,
+    start_time_s: *raw_times_us.last().unwrap() as f64 * 1e-6,
+    duration_s: None,
+  });
 
-  if laps.is_empty() && raw_times_us.len() == 1 {
-    return Ok(vec![LapInfo {
-      lap_number: 1,
-      start_time_s: raw_times_us[0] as f64 * 1e-6,
-      duration_s: None,
-    }]);
-  }
-
-  // Append the last lap (starts at the last marker, duration unknown)
-  if raw_times_us.len() > 1 {
-    let mut result = laps;
-    result.push(LapInfo {
-      lap_number: result.len() + 1,
-      start_time_s: *raw_times_us.last().unwrap() as f64 * 1e-6,
-      duration_s: None,
-    });
-    return Ok(result);
-  }
-
-  Ok(laps)
+  Ok(result)
 }

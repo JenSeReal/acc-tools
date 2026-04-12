@@ -13,9 +13,7 @@ pub struct LdSession {
   pub channels: Vec<LdChannel>,
 }
 
-/// A single telemetry channel with pre-computed statistics.
-/// Raw sample arrays are not stored; only statistics and a small preview
-/// slice are kept to limit memory usage in the WASM context.
+/// A single telemetry channel with pre-computed statistics and full sample data.
 #[derive(Debug, Clone)]
 pub struct LdChannel {
   pub name: String,
@@ -28,8 +26,8 @@ pub struct LdChannel {
   pub min: f64,
   pub max: f64,
   pub avg: f64,
-  /// Up to 256 evenly-spaced samples for a miniature preview.
-  pub preview: Vec<f64>,
+  /// Full decoded sample array (physical engineering values, one per recorded sample).
+  pub samples: Vec<f64>,
 }
 
 impl LdChannel {

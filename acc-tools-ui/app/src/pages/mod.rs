@@ -4,4 +4,4 @@ mod telemetry;
 
 pub use home::HomePage;
 pub use session::{SessionUploadPage, SessionViewPage};
-pub use telemetry::{TelemetryUploadPage, TelemetryViewPage};
+pub use telemetry::{TelemetryLapsPage, TelemetryUploadPage, TelemetryViewPage};

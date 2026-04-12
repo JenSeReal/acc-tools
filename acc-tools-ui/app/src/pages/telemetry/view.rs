@@ -56,12 +56,23 @@ pub fn TelemetryViewPage() -> impl IntoView {
           view! {
             <div class="flex items-center justify-between">
               <h1 class="text-2xl font-bold">"Telemetry"</h1>
-              <button
-                on:click=on_new
-                class="inline-flex items-center gap-2 rounded-md bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground shadow-sm transition-colors hover:bg-secondary/80"
-              >
-                "Load New File"
-              </button>
+              <div class="flex items-center gap-2">
+                <button
+                  on:click=move |_| {
+                    let navigate = use_navigate();
+                    navigate("/telemetry/laps", Default::default());
+                  }
+                  class="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+                >
+                  "View Laps"
+                </button>
+                <button
+                  on:click=on_new
+                  class="inline-flex items-center gap-2 rounded-md bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground shadow-sm transition-colors hover:bg-secondary/80"
+                >
+                  "Load New File"
+                </button>
+              </div>
             </div>
 
             // ── Session metadata ─────────────────────────────────────────

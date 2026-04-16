@@ -7,7 +7,11 @@
 //!   head.meta_ptr     – ldChan linked list (124 bytes each for ACC)
 //!   chan.data_ptr      – raw sample data blob
 
-use std::io::{self, Cursor, Read, Seek, SeekFrom};
+use nom::{
+  IResult,
+  bytes::complete::take,
+  number::complete::{le_i16, le_u16, le_u32},
+};
 
 use crate::models::{LdChannel, LdSession};
 
@@ -15,152 +19,165 @@ use crate::models::{LdChannel, LdSession};
 
 #[derive(Debug, thiserror::Error)]
 pub enum LdError {
-  #[error("IO error: {0}")]
-  Io(#[from] io::Error),
   #[error("Not a MoTeC LD file (bad magic: expected 0x40, got {0:#x})")]
   BadMagic(u32),
+  #[error("File too short to parse")]
+  TooShort,
+  #[error("Parse error")]
+  Parse,
+}
+
+fn nom_err(_: nom::Err<nom::error::Error<&[u8]>>) -> LdError {
+  LdError::Parse
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
 pub fn parse_ld(data: &[u8]) -> Result<LdSession, LdError> {
-  let mut r = Cursor::new(data);
+  if data.len() < 4 {
+    return Err(LdError::TooShort);
+  }
 
-  // ─ Header ────────────────────────────────────────────────────────────────
-
-  let magic = ru32(&mut r)?;
+  // Check magic before nom parsing so we can return a descriptive error.
+  let magic = u32::from_le_bytes(data[..4].try_into().unwrap());
   if magic != 0x40 {
     return Err(LdError::BadMagic(magic));
   }
-  skip(&mut r, 4)?; // padding
 
-  let meta_ptr = ru32(&mut r)? as usize;
-  let _data_ptr = ru32(&mut r)? as usize;
-  skip(&mut r, 20)?; // padding
-
-  let event_ptr = ru32(&mut r)? as usize;
-  skip(&mut r, 24)?; // padding
-
-  skip(&mut r, 6)?; // unknown1/2/3 (three u16)
-  let _device_serial = ru32(&mut r)?;
-  let device_type = rstr(&mut r, 8)?;
-  let _device_version = ru16(&mut r)?;
-  skip(&mut r, 2)?; // unknown4
-  let _num_channs = ru32(&mut r)?;
-  skip(&mut r, 4)?; // padding
-
-  let date = rstr(&mut r, 16)?;
-  skip(&mut r, 16)?; // padding
-  let time_of_day = rstr(&mut r, 16)?;
-  skip(&mut r, 16)?; // padding
-
-  let driver = rstr(&mut r, 64)?;
-  let vehicle_id = rstr(&mut r, 64)?;
-  skip(&mut r, 64)?; // padding
-  let venue_from_header = rstr(&mut r, 64)?;
-  skip(&mut r, 64)?; // padding
-  skip(&mut r, 1024)?; // unknown block
-
-  skip(&mut r, 4)?; // pro_logging_enable
-  skip(&mut r, 66)?; // padding
-  let short_comment = rstr(&mut r, 64)?;
-  // (126 bytes trailing padding – not needed)
+  let (_, header) = parse_header(data).map_err(nom_err)?;
 
   // ─ Event block ───────────────────────────────────────────────────────────
 
-  let (event_name, event_session, venue) = if event_ptr > 0 && event_ptr < data.len() {
-    r.seek(SeekFrom::Start(event_ptr as u64))?;
-    let name = rstr(&mut r, 64)?;
-    let session = rstr(&mut r, 64)?;
-    skip(&mut r, 1024)?; // comment
-    let venue_ptr = ru16(&mut r)? as usize;
+  let (event_name, event_session, venue) = if header.event_ptr > 0 && header.event_ptr < data.len()
+  {
+    let (_, (name, session, venue_ptr)) =
+      parse_event(&data[header.event_ptr..]).map_err(nom_err)?;
 
-    // Venue block – prefer venue from event if available
     let venue = if venue_ptr > 0 && venue_ptr < data.len() {
-      r.seek(SeekFrom::Start(venue_ptr as u64))?;
-      let v = rstr(&mut r, 64)?;
+      let (_, v) = fixed_str(64)(&data[venue_ptr..]).map_err(nom_err)?;
       if v.is_empty() {
-        venue_from_header.clone()
+        header.venue.clone()
       } else {
         v
       }
     } else {
-      venue_from_header.clone()
+      header.venue.clone()
     };
 
     (name, session, venue)
   } else {
-    (String::new(), String::new(), venue_from_header)
+    (String::new(), String::new(), header.venue.clone())
   };
 
   // ─ Channel linked list ───────────────────────────────────────────────────
 
   let mut channels = Vec::new();
-  if meta_ptr > 0 && meta_ptr < data.len() {
-    let mut ptr = meta_ptr;
-    while ptr > 0 && ptr + 124 <= data.len() {
-      r.seek(SeekFrom::Start(ptr as u64))?;
+  let mut ptr = header.meta_ptr;
 
-      let _prev = ru32(&mut r)?;
-      let next = ru32(&mut r)? as usize;
-      let chan_data_ptr = ru32(&mut r)? as usize;
-      let data_len = ru32(&mut r)?;
-
-      skip(&mut r, 2)?; // counter
-      let dtype_a = ru16(&mut r)?;
-      let dtype = ru16(&mut r)?;
-      let rec_freq = ru16(&mut r)?;
-      let shift = ri16(&mut r)?;
-      let mul = ri16(&mut r)?;
-      let scale = ri16(&mut r)?;
-      let dec_places = ri16(&mut r)?;
-
-      let name = rstr(&mut r, 32)?;
-      let short_name = rstr(&mut r, 8)?;
-      let unit = rstr(&mut r, 12)?;
-
-      let channel = decode_channel(
-        data,
-        chan_data_ptr,
-        data_len,
-        ChanMeta {
-          dtype_a,
-          dtype,
-          shift,
-          mul,
-          scale,
-          dec_places,
-          name,
-          short_name,
-          unit,
-          frequency: rec_freq,
-        },
-      );
-      channels.push(channel);
-
-      ptr = next;
-    }
+  while ptr > 0 && ptr + 124 <= data.len() {
+    let (_, entry) = parse_channel_entry(&data[ptr..]).map_err(nom_err)?;
+    channels.push(decode_channel(data, &entry));
+    ptr = entry.next;
   }
 
   Ok(LdSession {
-    driver,
-    vehicle_id,
+    driver: header.driver,
+    vehicle_id: header.vehicle_id,
     venue,
-    date,
-    time_of_day,
-    short_comment,
-    device_type,
+    date: header.date,
+    time_of_day: header.time_of_day,
+    short_comment: header.short_comment,
+    device_type: header.device_type,
     event_name,
     event_session,
     channels,
   })
 }
 
-// ── Channel decoding ──────────────────────────────────────────────────────────
+// ── Header ────────────────────────────────────────────────────────────────────
 
-struct ChanMeta {
+struct LdHeader {
+  meta_ptr: usize,
+  event_ptr: usize,
+  device_type: String,
+  date: String,
+  time_of_day: String,
+  driver: String,
+  vehicle_id: String,
+  venue: String,
+  short_comment: String,
+}
+
+fn parse_header(input: &[u8]) -> IResult<&[u8], LdHeader> {
+  let (input, _magic) = le_u32(input)?;
+  let (input, _) = take(4usize)(input)?; // padding
+
+  let (input, meta_ptr) = le_u32(input)?;
+  let (input, _data_ptr) = le_u32(input)?;
+  let (input, _) = take(20usize)(input)?; // padding
+
+  let (input, event_ptr) = le_u32(input)?;
+  let (input, _) = take(24usize)(input)?; // padding
+
+  let (input, _) = take(6usize)(input)?; // unknown1/2/3 (three u16)
+  let (input, _device_serial) = le_u32(input)?;
+  let (input, device_type) = fixed_str(8)(input)?;
+  let (input, _device_version) = le_u16(input)?;
+  let (input, _) = take(2usize)(input)?; // unknown4
+  let (input, _num_channs) = le_u32(input)?;
+  let (input, _) = take(4usize)(input)?; // padding
+
+  let (input, date) = fixed_str(16)(input)?;
+  let (input, _) = take(16usize)(input)?; // padding
+  let (input, time_of_day) = fixed_str(16)(input)?;
+  let (input, _) = take(16usize)(input)?; // padding
+
+  let (input, driver) = fixed_str(64)(input)?;
+  let (input, vehicle_id) = fixed_str(64)(input)?;
+  let (input, _) = take(64usize)(input)?; // padding
+  let (input, venue) = fixed_str(64)(input)?;
+  let (input, _) = take(64usize)(input)?; // padding
+  let (input, _) = take(1024usize)(input)?; // unknown block
+
+  let (input, _) = take(4usize)(input)?; // pro_logging_enable
+  let (input, _) = take(66usize)(input)?; // padding
+  let (input, short_comment) = fixed_str(64)(input)?;
+
+  Ok((
+    input,
+    LdHeader {
+      meta_ptr: meta_ptr as usize,
+      event_ptr: event_ptr as usize,
+      device_type,
+      date,
+      time_of_day,
+      driver,
+      vehicle_id,
+      venue,
+      short_comment,
+    },
+  ))
+}
+
+// ── Event block ───────────────────────────────────────────────────────────────
+
+fn parse_event(input: &[u8]) -> IResult<&[u8], (String, String, usize)> {
+  let (input, name) = fixed_str(64)(input)?;
+  let (input, session) = fixed_str(64)(input)?;
+  let (input, _) = take(1024usize)(input)?; // comment
+  let (input, venue_ptr) = le_u16(input)?;
+  Ok((input, (name, session, venue_ptr as usize)))
+}
+
+// ── Channel linked list entry ─────────────────────────────────────────────────
+
+struct ChanEntry {
+  next: usize,
+  data_ptr: usize,
+  data_len: u32,
   dtype_a: u16,
   dtype: u16,
+  frequency: u16,
   shift: i16,
   mul: i16,
   scale: i16,
@@ -168,32 +185,62 @@ struct ChanMeta {
   name: String,
   short_name: String,
   unit: String,
-  frequency: u16,
 }
 
-fn decode_channel(data: &[u8], data_ptr: usize, sample_count: u32, meta: ChanMeta) -> LdChannel {
-  let ChanMeta {
-    dtype_a,
-    dtype,
-    shift,
-    mul,
-    scale,
-    dec_places,
-    name,
-    short_name,
-    unit,
-    frequency,
-  } = meta;
-  let n = sample_count as usize;
-  let end = data_ptr.saturating_add(n.saturating_mul(dtype as usize));
+fn parse_channel_entry(input: &[u8]) -> IResult<&[u8], ChanEntry> {
+  let (input, _prev) = le_u32(input)?;
+  let (input, next) = le_u32(input)?;
+  let (input, data_ptr) = le_u32(input)?;
+  let (input, data_len) = le_u32(input)?;
 
-  if n == 0 || data_ptr >= data.len() || end > data.len() || dtype == 0 {
-    return LdChannel {
+  let (input, _) = take(2usize)(input)?; // counter
+  let (input, dtype_a) = le_u16(input)?;
+  let (input, dtype) = le_u16(input)?;
+  let (input, frequency) = le_u16(input)?;
+  let (input, shift) = le_i16(input)?;
+  let (input, mul) = le_i16(input)?;
+  let (input, scale) = le_i16(input)?;
+  let (input, dec_places) = le_i16(input)?;
+
+  let (input, name) = fixed_str(32)(input)?;
+  let (input, short_name) = fixed_str(8)(input)?;
+  let (input, unit) = fixed_str(12)(input)?;
+
+  Ok((
+    input,
+    ChanEntry {
+      next: next as usize,
+      data_ptr: data_ptr as usize,
+      data_len,
+      dtype_a,
+      dtype,
+      frequency,
+      shift,
+      mul,
+      scale,
+      dec_places,
       name,
       short_name,
       unit,
-      frequency,
-      sample_count,
+    },
+  ))
+}
+
+// ── Channel decoding ──────────────────────────────────────────────────────────
+
+fn decode_channel(data: &[u8], entry: &ChanEntry) -> LdChannel {
+  let n = entry.data_len as usize;
+  let end = entry
+    .data_ptr
+    .saturating_add(n.saturating_mul(entry.dtype as usize));
+
+  if n == 0 || entry.data_ptr >= data.len() || end > data.len() || entry.dtype == 0 {
+    return LdChannel {
+      name: entry.name.clone(),
+      short_name: entry.short_name.clone(),
+      unit: entry.unit.clone(),
+      frequency: entry.frequency,
+      sample_count: entry.data_len,
       min: f64::NAN,
       max: f64::NAN,
       avg: f64::NAN,
@@ -201,16 +248,15 @@ fn decode_channel(data: &[u8], data_ptr: usize, sample_count: u32, meta: ChanMet
     };
   }
 
-  // Read raw samples as f64 physical values
-  let blob = &data[data_ptr..end];
+  let blob = &data[entry.data_ptr..end];
   let mut sum = 0.0f64;
   let mut min = f64::INFINITY;
   let mut max = f64::NEG_INFINITY;
   let mut samples = Vec::with_capacity(n);
 
   for i in 0..n {
-    let raw = read_raw_sample(blob, i, dtype_a, dtype);
-    let phys = to_physical(raw, shift, mul, scale, dec_places);
+    let raw = read_raw_sample(blob, i, entry.dtype_a, entry.dtype);
+    let phys = to_physical(raw, entry.shift, entry.mul, entry.scale, entry.dec_places);
     sum += phys;
     if phys < min {
       min = phys;
@@ -222,11 +268,11 @@ fn decode_channel(data: &[u8], data_ptr: usize, sample_count: u32, meta: ChanMet
   }
 
   LdChannel {
-    name,
-    short_name,
-    unit,
-    frequency,
-    sample_count,
+    name: entry.name.clone(),
+    short_name: entry.short_name.clone(),
+    unit: entry.unit.clone(),
+    frequency: entry.frequency,
+    sample_count: entry.data_len,
     min,
     max,
     avg: sum / n as f64,
@@ -289,40 +335,13 @@ fn f16_to_f64(bits: u16) -> f64 {
   }
 }
 
-// ── Low-level reading helpers ─────────────────────────────────────────────────
+// ── nom helpers ───────────────────────────────────────────────────────────────
 
-fn ru32(r: &mut Cursor<&[u8]>) -> io::Result<u32> {
-  let mut buf = [0u8; 4];
-  r.read_exact(&mut buf)?;
-  Ok(u32::from_le_bytes(buf))
-}
-
-fn ru16(r: &mut Cursor<&[u8]>) -> io::Result<u16> {
-  let mut buf = [0u8; 2];
-  r.read_exact(&mut buf)?;
-  Ok(u16::from_le_bytes(buf))
-}
-
-fn ri16(r: &mut Cursor<&[u8]>) -> io::Result<i16> {
-  let mut buf = [0u8; 2];
-  r.read_exact(&mut buf)?;
-  Ok(i16::from_le_bytes(buf))
-}
-
-fn skip(r: &mut Cursor<&[u8]>, n: u64) -> io::Result<()> {
-  r.seek(SeekFrom::Current(n as i64))?;
-  Ok(())
-}
-
-/// Read exactly `len` bytes and return them as a trimmed ASCII string.
-fn rstr(r: &mut Cursor<&[u8]>, len: usize) -> io::Result<String> {
-  let mut buf = vec![0u8; len];
-  r.read_exact(&mut buf)?;
-  // Trim null bytes and surrounding whitespace
-  let s = buf
-    .iter()
-    .take_while(|&&b| b != 0)
-    .copied()
-    .collect::<Vec<_>>();
-  Ok(String::from_utf8_lossy(&s).trim().to_string())
+/// Parse exactly `len` bytes as a null-terminated, trimmed ASCII string.
+fn fixed_str(len: usize) -> impl Fn(&[u8]) -> IResult<&[u8], String> {
+  move |input: &[u8]| {
+    let (input, bytes) = take(len)(input)?;
+    let s: Vec<u8> = bytes.iter().copied().take_while(|&b| b != 0).collect();
+    Ok((input, String::from_utf8_lossy(&s).trim().to_string()))
+  }
 }

@@ -6,70 +6,72 @@
 //!   Attribute form:  <Marker Time="83400000" ... />
 //!   Element form:    <Time>83400000</Time>
 
-use quick_xml::Reader;
-use quick_xml::events::Event;
+use quick_xml::{Reader, events::Event};
 
 use crate::models::LapInfo;
 
 #[derive(Debug, thiserror::Error)]
 pub enum LdxError {
-  #[error("XML parse error: {0}")]
-  Xml(#[from] quick_xml::Error),
-  #[error("Attribute error: {0}")]
-  Attr(#[from] quick_xml::events::attributes::AttrError),
+  #[error("Parse error: {0}")]
+  Parse(String),
 }
+
+// ── Public API ────────────────────────────────────────────────────────────────
 
 /// Parse a .ldx XML file and return lap boundary information.
 ///
 /// Times are stored as microseconds.  Returned `LapInfo` values are sorted
 /// by start time; `duration_s` is `None` for the last lap.
 pub fn parse_ldx(data: &[u8]) -> Result<Vec<LapInfo>, LdxError> {
+  let mut raw_times_us: Vec<i64> = Vec::new();
+
   let mut reader = Reader::from_reader(data);
   reader.config_mut().trim_text(true);
 
-  let mut raw_times_us: Vec<i64> = Vec::new();
   let mut buf = Vec::new();
-  // Track whether the current element is a <Time> element so we can read
-  // its text content.
-  let mut inside_time_element = false;
+  let mut inside_time_elem = false;
 
   loop {
-    match reader.read_event_into(&mut buf)? {
-      Event::Eof => break,
+    match reader.read_event_into(&mut buf) {
+      Ok(Event::Start(ref e)) | Ok(Event::Empty(ref e)) => {
+        let name = e.local_name();
+        if name.as_ref() == b"Time" {
+          // Element form: collect the text content on the next Text event.
+          // (Empty elements with this name are ignored — they carry no value.)
+          inside_time_elem = true;
+        }
 
-      // Opening or self-closing element — look for a Time attribute.
-      Event::Start(ref e) | Event::Empty(ref e) => {
-        // Check if this element is named "Time"
-        inside_time_element = e.name().as_ref() == b"Time";
-
-        for attr in e.attributes() {
-          let attr = attr?;
-          if attr.key.as_ref() == b"Time" {
-            let val = attr.unescape_value().unwrap_or_default();
-            // Time values may be scientific notation (e.g. "1.62389e+08")
-            if let Ok(us) = val.trim().parse::<f64>() {
-              raw_times_us.push(us as i64);
-            }
+        // Attribute form: any element may carry a Time="…" attribute.
+        for attr in e.attributes().flatten() {
+          if attr.key.local_name().as_ref() == b"Time"
+            && let Ok(val) = attr.unescape_value()
+            && let Some(us) = parse_time_str(val.trim())
+          {
+            raw_times_us.push(us);
           }
         }
       }
 
-      // Text content inside a <Time>…</Time> element.
-      Event::Text(ref e) => {
-        if inside_time_element {
-          let val = e.unescape().unwrap_or_default();
-          if let Ok(us) = val.trim().parse::<f64>() {
-            raw_times_us.push(us as i64);
-          }
-          inside_time_element = false;
+      Ok(Event::Text(ref e)) if inside_time_elem => {
+        if let Ok(text) = std::str::from_utf8(e.as_ref())
+          && let Some(us) = parse_time_str(text.trim())
+        {
+          raw_times_us.push(us);
         }
+        inside_time_elem = false;
       }
 
-      Event::End(_) => {
-        inside_time_element = false;
+      Ok(Event::End(_)) => {
+        inside_time_elem = false;
       }
 
-      _ => {}
+      Ok(Event::Eof) => break,
+
+      Err(e) => return Err(LdxError::Parse(e.to_string())),
+
+      _ => {
+        inside_time_elem = false;
+      }
     }
     buf.clear();
   }
@@ -109,4 +111,11 @@ pub fn parse_ldx(data: &[u8]) -> Result<Vec<LapInfo>, LdxError> {
   });
 
   Ok(result)
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+/// Parse a decimal or scientific-notation string to microseconds (i64).
+fn parse_time_str(s: &str) -> Option<i64> {
+  s.parse::<f64>().ok().map(|v| v as i64)
 }

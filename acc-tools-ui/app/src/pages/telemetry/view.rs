@@ -1,23 +1,9 @@
 use acc_tools_ui_components::components::ui::data_table::*;
 use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
+use motec_viewer_lib::{channel_description, fmt_duration};
 
 use crate::state::TelemetryState;
-
-fn fmt_duration(secs: f64) -> String {
-  if secs.is_nan() || secs < 0.0 {
-    return "—".to_string();
-  }
-  let total = secs as u64;
-  let h = total / 3600;
-  let m = (total % 3600) / 60;
-  let s = total % 60;
-  if h > 0 {
-    format!("{h}:{m:02}:{s:02}")
-  } else {
-    format!("{m}:{s:02}")
-  }
-}
 
 fn fmt_f64(v: f64) -> String {
   if v.is_nan() || v.is_infinite() {
@@ -134,11 +120,9 @@ pub fn TelemetryViewPage() -> impl IntoView {
                   <DataTableHeader>
                     <DataTableRow>
                       <DataTableHead>"Channel"</DataTableHead>
-                      <DataTableHead>"Short"</DataTableHead>
+                      <DataTableHead>"Description"</DataTableHead>
                       <DataTableHead>"Unit"</DataTableHead>
                       <DataTableHead>"Hz"</DataTableHead>
-                      <DataTableHead>"Samples"</DataTableHead>
-                      <DataTableHead>"Duration"</DataTableHead>
                       <DataTableHead>"Min"</DataTableHead>
                       <DataTableHead>"Max"</DataTableHead>
                       <DataTableHead>"Avg"</DataTableHead>
@@ -147,22 +131,18 @@ pub fn TelemetryViewPage() -> impl IntoView {
                   <DataTableBody>
                     {session.channels.iter().map(|ch| {
                       let name = ch.name.clone();
-                      let short = ch.short_name.clone();
+                      let desc = channel_description(&ch.name);
                       let unit = ch.unit.clone();
                       let freq = ch.frequency.to_string();
-                      let samples = ch.sample_count.to_string();
-                      let dur = fmt_duration(ch.duration_s());
                       let min = fmt_f64(ch.min);
                       let max = fmt_f64(ch.max);
                       let avg = fmt_f64(ch.avg);
                       view! {
                         <DataTableRow>
                           <DataTableCell>{name}</DataTableCell>
-                          <DataTableCell class="text-muted-foreground">{short}</DataTableCell>
+                          <DataTableCell class="text-muted-foreground">{desc}</DataTableCell>
                           <DataTableCell class="text-muted-foreground">{unit}</DataTableCell>
                           <DataTableCell class="tabular-nums">{freq}</DataTableCell>
-                          <DataTableCell class="tabular-nums">{samples}</DataTableCell>
-                          <DataTableCell class="tabular-nums">{dur}</DataTableCell>
                           <DataTableCell class="tabular-nums">{min}</DataTableCell>
                           <DataTableCell class="tabular-nums">{max}</DataTableCell>
                           <DataTableCell class="tabular-nums">{avg}</DataTableCell>

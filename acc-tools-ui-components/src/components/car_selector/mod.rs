@@ -28,7 +28,7 @@ pub fn CarSelector(
 
   #[cfg(not(any(feature = "csr", feature = "hydrate")))]
   let on_change = move |_: leptos::ev::Event| {
-    // SSR: Event handling will be hydrated on client
+    let _ = &selected_car_model;
   };
 
   view! {

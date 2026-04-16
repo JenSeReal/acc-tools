@@ -9,4 +9,6 @@ path = "src/lib.rs"
 
 [dependencies]
 thiserror = "2.0"
-quick-xml = "0.37"
+nom = "8"
+quick-xml = "0.39.2"
+measurements = "0.11.1"

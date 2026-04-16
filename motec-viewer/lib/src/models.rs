@@ -38,6 +38,38 @@ impl LdChannel {
       self.sample_count as f64 / self.frequency as f64
     }
   }
+
+  /// Return the decoded sample at `lap_start_s + cursor_s` into the session.
+  pub fn sample_at_lap(&self, lap_start_s: f64, cursor_s: f64) -> Option<f64> {
+    let si = ((lap_start_s + cursor_s) * self.frequency as f64) as usize;
+    self.samples.get(si).copied()
+  }
+}
+
+impl LdSession {
+  /// Find the first channel whose name matches `name` exactly.
+  pub fn find_channel(&self, name: &str) -> Option<&LdChannel> {
+    self.channels.iter().find(|c| c.name == name)
+  }
+}
+
+/// Return the global `(min, max)` of `ch` across all given `(start_s, dur_s)` windows.
+pub fn channel_range(ch: &LdChannel, windows: &[(f64, f64)]) -> (f64, f64) {
+  let mut mn = f64::INFINITY;
+  let mut mx = f64::NEG_INFINITY;
+  for &(start_s, dur_s) in windows {
+    let si = (start_s * ch.frequency as f64) as usize;
+    let ei = ((start_s + dur_s) * ch.frequency as f64) as usize;
+    let si = si.min(ch.samples.len());
+    let ei = ei.min(ch.samples.len());
+    for &v in &ch.samples[si..ei] {
+      if v.is_finite() {
+        mn = mn.min(v);
+        mx = mx.max(v);
+      }
+    }
+  }
+  (mn, mx)
 }
 
 /// A lap boundary extracted from the .ldx XML sidecar.

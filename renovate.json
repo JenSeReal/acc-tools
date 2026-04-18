@@ -14,7 +14,7 @@
 		},
 		{
 			"description": "Group Rust dependency updates",
-			"matchManagers": ["cargo", "rust-toolchain"],
+			"matchManagers": ["cargo", "rust"],
 			"groupName": "Rust dependencies",
 			"automerge": false
 		},
@@ -32,9 +32,6 @@
 		}
 	],
 	"cargo": {
-		"enabled": true
-	},
-	"rust-toolchain": {
 		"enabled": true
 	},
 	"lockFileMaintenance": {

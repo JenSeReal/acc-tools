@@ -15,7 +15,7 @@ leptos_router = "0.8"
 leptos_ui = "0.3"
 icons = { version = "0.18", features = ["leptos"] }
 tw_merge = "0.1"
-strum = { version = "0.27", features = ["derive"] }
+strum = { version = "0.28", features = ["derive"] }
 acc-session-viewer-lib = { path = "../acc-session-viewer/lib" }
 
 # CSR/hydrate dependencies

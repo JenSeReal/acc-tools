@@ -9,11 +9,11 @@ use crate::{
   session_type::model::SessionType,
   track::model::Track,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 /// A unified session representation that can be created from either
 /// JSON session files or PDF qualifying results.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LoadedSession {
   pub session_type: SessionType,
   pub track_name: Track,

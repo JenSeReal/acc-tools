@@ -11,12 +11,17 @@ leptos = "0.8"
 leptos_router = "0.8"
 leptos_meta = "0.8"
 serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 acc-session-viewer-lib = { path = "../../acc-session-viewer/lib" }
 motec-viewer-lib = { path = "../../motec-viewer/lib" }
 acc-tools-ui-components = { path = "../../acc-tools-ui-components" }
 
+# WASM target — getrandom 0.3 requires explicit backend selection
+getrandom = { version = "0.3", features = ["wasm_js"] }
+
 # CSR dependencies
 wasm-bindgen = { version = "0.2", optional = true }
+wasm-bindgen-futures = { version = "0.4", optional = true }
 console_error_panic_hook = { version = "0.1.7", optional = true }
 js-sys = { version = "0.3", optional = true }
 web-sys = { version = "0.3", features = [
@@ -48,6 +53,7 @@ csr = [
     "leptos/csr",
     "acc-tools-ui-components/csr",
     "dep:wasm-bindgen",
+    "dep:wasm-bindgen-futures",
     "dep:console_error_panic_hook",
     "dep:js-sys",
 ]
@@ -55,6 +61,7 @@ hydrate = [
     "leptos/hydrate",
     "acc-tools-ui-components/hydrate",
     "dep:wasm-bindgen",
+    "dep:wasm-bindgen-futures",
     "dep:console_error_panic_hook",
     "dep:js-sys",
 ]

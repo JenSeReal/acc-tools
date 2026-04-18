@@ -1,12 +1,11 @@
 use std::str::FromStr;
 
 use nom::{
-  IResult,
+  IResult, Parser,
   branch::alt,
   bytes::complete::tag,
   character::complete::{char, digit1, multispace1, space0, space1},
   combinator::{map, map_res, value},
-  sequence::tuple,
 };
 
 use super::{ParseError, SessionParser};
@@ -82,29 +81,31 @@ fn extract_track_name(text: &str) -> Result<Track, ParseError> {
 /// Parse a time in MM:SS.mmm format to milliseconds
 fn parse_time(input: &str) -> IResult<&str, u32> {
   map(
-    tuple((
+    (
       map_res(digit1, |s: &str| s.parse::<u32>()),
       char(':'),
       map_res(digit1, |s: &str| s.parse::<u32>()),
       char('.'),
       map_res(digit1, |s: &str| s.parse::<u32>()),
-    )),
+    ),
     |(minutes, _, seconds, _, millis)| (minutes * 60 + seconds) * 1000 + millis,
-  )(input)
+  )
+  .parse(input)
 }
 
 /// Parse "No valid time" as None
 fn parse_no_valid_time(input: &str) -> IResult<&str, Option<u32>> {
   value(
     None,
-    tuple((
+    (
       tag("No"),
       multispace1,
       tag("valid"),
       multispace1,
       tag("time"),
-    )),
-  )(input)
+    ),
+  )
+  .parse(input)
 }
 
 /// Parse a boolean indicator (checkmark or cross)
@@ -112,12 +113,13 @@ fn parse_bool_indicator(input: &str) -> IResult<&str, bool> {
   alt((
     value(true, alt((tag("✔️"), tag("✔"), tag("✓")))),
     value(false, alt((tag("❌"), tag("✗"), tag("×")))),
-  ))(input)
+  ))
+  .parse(input)
 }
 
 /// Parse a u32 number
 fn parse_u32(input: &str) -> IResult<&str, u32> {
-  map_res(digit1, |s: &str| s.parse::<u32>())(input)
+  map_res(digit1, |s: &str| s.parse::<u32>()).parse(input)
 }
 
 /// Parse all entries from the PDF text

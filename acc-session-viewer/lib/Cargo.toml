@@ -14,5 +14,5 @@ serde_with = "3.0"
 thiserror = "2.0"
 miette = { version = "7.0", features = ["fancy"] }
 encoding_rs = "0.8"
-pdf-extract = "0.7"
-nom = "7.1"
+pdf-extract = "0.10"
+nom = "8"

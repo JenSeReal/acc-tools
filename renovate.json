@@ -1,0 +1,41 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "schedule": ["before 6am on Monday"],
+  "timezone": "Europe/Berlin",
+  "labels": ["dependencies"],
+  "assignees": ["jensereal"],
+  "packageRules": [
+    {
+      "description": "Group all GitHub Actions updates",
+      "matchManagers": ["github-actions"],
+      "groupName": "GitHub Actions",
+      "automerge": false
+    },
+    {
+      "description": "Group Rust dependency updates",
+      "matchManagers": ["cargo"],
+      "groupName": "Rust dependencies",
+      "automerge": false
+    },
+    {
+      "description": "Group npm/Node updates",
+      "matchManagers": ["npm"],
+      "groupName": "npm dependencies",
+      "automerge": false
+    },
+    {
+      "description": "Automerge GitHub Actions digest pinning (patch/digest only)",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["digest"],
+      "automerge": true
+    }
+  ],
+  "cargo": {
+    "enabled": true
+  },
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 6am on Monday"]
+  }
+}

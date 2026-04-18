@@ -1,4 +1,5 @@
 pub mod app;
+pub mod db;
 pub mod layouts;
 pub mod pages;
 pub mod state;

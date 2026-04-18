@@ -3,8 +3,7 @@
 /// X-axis = distance through reference lap (shown as reference lap time for readability).
 /// Y-axis = Δt in seconds (positive = slower than reference, negative = faster).
 use leptos::prelude::*;
-use measurements::Speed;
-use motec_viewer_lib::{LdChannel, LdSession};
+use motec_viewer_lib::{LdChannel, LdSession, cumulative_distance};
 
 use super::helpers::{CHART_W, LAP_COLORS, fmt_lap_time};
 
@@ -12,16 +11,6 @@ const DELTA_CHART_H: f64 = 120.0;
 const N_POINTS: usize = 400;
 
 // ── Math helpers ───────────────────────────────────────────────────────────────
-
-/// Compute cumulative distance (meters) array from a SPEED channel slice (m/s).
-fn cumulative_distance(speed_samples: &[f64], dt: f64) -> Vec<f64> {
-  let mut dist = vec![0.0f64; speed_samples.len()];
-  for i in 1..speed_samples.len() {
-    let v_ms = Speed::from_metres_per_second(speed_samples[i].max(0.0)).as_metres_per_second();
-    dist[i] = dist[i - 1] + v_ms * dt;
-  }
-  dist
-}
 
 /// Given a cumulative distance array and a target distance, return the time (seconds)
 /// when that distance was reached via linear interpolation.

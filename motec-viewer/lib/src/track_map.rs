@@ -8,8 +8,6 @@
 //! SPEED is in m/s. It is averaged down to the ROTY sample rate before
 //! integration; all other rate ratios are handled generically.
 
-use measurements::Speed;
-
 use crate::models::LdSession;
 
 /// A 2-D position relative to the session start point, in metres.
@@ -70,7 +68,7 @@ pub fn dead_reckoning_slice(session: &LdSession, start_s: f64, dur_s: f64) -> Op
       break;
     }
     let raw_speed = speed_ch.samples[s_start..s_end].iter().sum::<f64>() / (s_end - s_start) as f64;
-    let v_ms = Speed::from_metres_per_second(raw_speed).as_metres_per_second();
+    let v_ms = raw_speed;
     let omega = roty_ch.samples[r_idx];
 
     heading += omega * dt;
@@ -81,6 +79,19 @@ pub fn dead_reckoning_slice(session: &LdSession, start_s: f64, dur_s: f64) -> Op
   }
 
   Some(points)
+}
+
+/// Compute cumulative distance (metres) from a contiguous slice of speed
+/// samples (m/s) and the inter-sample period `dt` (seconds).
+///
+/// The returned vec has the same length as `speed_samples`; element `i` is
+/// the total distance travelled up to and including that sample.
+pub fn cumulative_distance(speed_samples: &[f64], dt: f64) -> Vec<f64> {
+  let mut dist = vec![0.0f64; speed_samples.len()];
+  for i in 1..speed_samples.len() {
+    dist[i] = dist[i - 1] + speed_samples[i].max(0.0) * dt;
+  }
+  dist
 }
 
 /// Integrate SPEED + ROTY into a sequence of (x, y) positions.
@@ -116,7 +127,7 @@ pub fn dead_reckoning(session: &LdSession) -> Option<Vec<Point2D>> {
     let start = i * ratio;
     let end = (start + ratio).min(speed_ch.samples.len());
     let raw_speed: f64 = speed_ch.samples[start..end].iter().sum::<f64>() / (end - start) as f64;
-    let v_ms = Speed::from_metres_per_second(raw_speed).as_metres_per_second();
+    let v_ms = raw_speed;
 
     heading += roty_ch.samples[i] * dt;
     x += v_ms * heading.cos() * dt;

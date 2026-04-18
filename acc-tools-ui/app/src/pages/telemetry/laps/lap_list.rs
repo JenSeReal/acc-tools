@@ -4,7 +4,12 @@ use motec_viewer_lib::LapInfo;
 use super::helpers::{LAP_COLORS, fmt_lap_time};
 
 #[component]
-pub fn LapSelector(laps: Vec<LapInfo>, selected_laps: RwSignal<Vec<usize>>) -> impl IntoView {
+pub fn LapSelector(
+  laps: Vec<LapInfo>,
+  /// Effective (trimmed) duration for each lap, parallel to `laps`.
+  effective_durs: Vec<f64>,
+  selected_laps: RwSignal<Vec<usize>>,
+) -> impl IntoView {
   view! {
     <div class="rounded-lg border bg-card p-3">
       <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
@@ -13,10 +18,16 @@ pub fn LapSelector(laps: Vec<LapInfo>, selected_laps: RwSignal<Vec<usize>>) -> i
       <div class="flex flex-col gap-1">
         {laps
           .into_iter()
-          .map(|lap| {
+          .zip(effective_durs.into_iter())
+          .map(|(lap, eff_dur)| {
             let idx = lap.lap_number - 1;
             let color = LAP_COLORS[idx % LAP_COLORS.len()];
-            let dur = lap.duration_s.map(fmt_lap_time).unwrap_or_else(|| "—".to_string());
+            // Show effective (trimmed) duration; fall back to actual if zero.
+            let dur = if eff_dur > 0.0 {
+              fmt_lap_time(eff_dur)
+            } else {
+              lap.duration_s.map(fmt_lap_time).unwrap_or_else(|| "—".to_string())
+            };
             view! {
               <button
                 class=move || {

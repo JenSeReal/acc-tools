@@ -8,8 +8,8 @@ pub mod units;
 pub use display::{channel_description, fmt_duration, fmt_lap_time};
 pub use ld_file::parse_ld;
 pub use ldx_file::parse_ldx;
-pub use models::{LapInfo, LdChannel, LdSession, channel_range};
-pub use track_map::{Point2D, dead_reckoning, dead_reckoning_slice};
+pub use models::{LapInfo, LdChannel, LdSession, channel_range, filter_racing_laps, racing_window};
+pub use track_map::{Point2D, cumulative_distance, dead_reckoning, dead_reckoning_slice};
 pub use units::{kmh_to_ms, kpa_to_psi, ms_to_kmh, psi_to_kpa};
 
 #[cfg(test)]

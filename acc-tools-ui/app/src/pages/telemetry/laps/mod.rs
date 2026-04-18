@@ -8,7 +8,7 @@ mod widgets;
 
 use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
-use motec_viewer_lib::LdChannel;
+use motec_viewer_lib::{LdChannel, filter_racing_laps, racing_window};
 
 use crate::state::TelemetryState;
 use channel_groups::{
@@ -45,7 +45,14 @@ pub fn TelemetryLapsPage() -> impl IntoView {
     }
   });
 
-  let selected_laps: RwSignal<Vec<usize>> = RwSignal::new(vec![]);
+  let racing_laps = filter_racing_laps(&state.laps.get_untracked());
+  let fastest_lap_idx = racing_laps
+    .iter()
+    .filter_map(|lap| lap.duration_s.map(|d| (lap.lap_number - 1, d)))
+    .min_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal))
+    .map(|(i, _)| i);
+  let selected_laps: RwSignal<Vec<usize>> =
+    RwSignal::new(fastest_lap_idx.map(|i| vec![i]).unwrap_or_default());
   let cursor_time: RwSignal<f64> = RwSignal::new(0.0);
   let active_view: RwSignal<&'static str> = RwSignal::new("Overview");
 
@@ -59,6 +66,41 @@ pub fn TelemetryLapsPage() -> impl IntoView {
       <Show when=move || state.session.get().is_some()>
         {move || {
           let laps = state.laps.get();
+          let session = state.session.get().unwrap();
+
+          let racing_filtered = filter_racing_laps(&laps);
+
+          // Median racing lap duration – used as reference for window detection.
+          let median_racing_s = {
+            let mut durs: Vec<f64> =
+              racing_filtered.iter().filter_map(|l| l.duration_s).collect();
+            durs.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+            durs.get(durs.len() / 2).copied().unwrap_or(90.0)
+          };
+
+          let speed_ch = session.find_channel("SPEED");
+
+          // (start_offset_s, duration_s) for the pure racing portion of each lap,
+          // indexed by position in the full `laps` vec (= lap_number - 1).
+          let racing_windows: Vec<(f64, f64)> = laps
+            .iter()
+            .map(|lap| {
+              if let Some(sp) = speed_ch {
+                racing_window(lap, sp, median_racing_s)
+              } else {
+                (0.0, lap.duration_s.unwrap_or(median_racing_s))
+              }
+            })
+            .collect();
+
+          // Effective durations parallel to `racing_filtered` for display.
+          let effective_durs: Vec<f64> = racing_filtered
+            .iter()
+            .map(|l| racing_windows.get(l.lap_number - 1).map(|&(_, d)| d).unwrap_or(0.0))
+            .collect();
+
+          let racing_windows_sv = StoredValue::new(racing_windows);
+
           view! {
             <div class="space-y-4">
               <div class="flex items-center justify-between">
@@ -90,7 +132,11 @@ pub fn TelemetryLapsPage() -> impl IntoView {
                   <div class="flex gap-4 items-start">
                     // ── Left: lap selector sidebar ──
                     <div class="flex-shrink-0 w-44 sticky top-4">
-                      <LapSelector laps=laps.clone() selected_laps />
+                      <LapSelector
+                        laps=racing_filtered.clone()
+                        effective_durs=effective_durs
+                        selected_laps
+                      />
                     </div>
 
                     // ── Right: tab content ──
@@ -116,14 +162,20 @@ pub fn TelemetryLapsPage() -> impl IntoView {
                       .iter()
                       .filter_map(|&i| {
                         let lap = laps.get(i)?;
-                        let dur = lap.duration_s.unwrap_or_else(|| {
-                          session
-                            .channels
-                            .first()
-                            .map(|ch| ch.duration_s() - lap.start_time_s)
-                            .unwrap_or(60.0)
-                        });
-                        Some((i, lap.start_time_s, dur))
+                        let (offset, dur) =
+                          racing_windows_sv.with_value(|w| w.get(i).copied()).unwrap_or_else(|| {
+                            // Fallback for laps without a computed window.
+                            let d = lap.duration_s.unwrap_or_else(|| {
+                              session
+                                .channels
+                                .first()
+                                .map(|ch| ch.duration_s() - lap.start_time_s)
+                                .unwrap_or(60.0)
+                            });
+                            (0.0, d)
+                          });
+                        if dur <= 0.0 { return None; }
+                        Some((i, lap.start_time_s + offset, dur))
                       })
                       .collect();
 

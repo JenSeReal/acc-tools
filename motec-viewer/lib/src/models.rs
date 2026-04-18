@@ -81,3 +81,118 @@ pub struct LapInfo {
   /// Duration of this lap (None for the last lap if no end marker follows).
   pub duration_s: Option<f64>,
 }
+
+/// Returns `(start_offset_s, duration_s)` for the pure racing portion of a lap.
+///
+/// - Normal racing lap  → `(0.0, actual_dur)`
+/// - In-lap (pits at end) → `(0.0, time_to_pit_entry)`
+/// - Out-lap (pits at start) → `(time_of_pit_exit, remaining_dur)`
+/// - Combined in+out    → trimmed on both sides
+///
+/// Detection uses the SPEED channel: sustained speed below `80 km/h` for ≥ 4 s
+/// is treated as pit-lane driving. `median_racing_s` is used to avoid searching
+/// for pit entry too early in the lap.
+pub fn racing_window(lap: &LapInfo, speed_ch: &LdChannel, median_racing_s: f64) -> (f64, f64) {
+  let actual_dur = match lap.duration_s {
+    Some(d) => d,
+    None => return (0.0, median_racing_s),
+  };
+
+  let freq = speed_ch.frequency as f64;
+  if freq == 0.0 || speed_ch.samples.is_empty() {
+    return (0.0, actual_dur);
+  }
+
+  // Only attempt trimming for laps that are significantly longer than median.
+  if actual_dur <= median_racing_s * 1.4 {
+    return (0.0, actual_dur);
+  }
+
+  let start_i = (lap.start_time_s * freq) as usize;
+  let end_i = (start_i + (actual_dur * freq) as usize).min(speed_ch.samples.len());
+  if start_i >= end_i {
+    return (0.0, actual_dur);
+  }
+
+  let samples = &speed_ch.samples[start_i..end_i];
+  let pit_threshold = 80.0_f64 / 3.6; // 80 km/h in m/s
+  let min_low = ((4.0 * freq) as usize).max(1);
+
+  // ── Out-lap: pit-lane period at the very start ──────────────────────────────
+  let start_offset_s = {
+    // Count how many samples at the start are below threshold
+    let initial_low: usize = samples.iter().take_while(|&&v| v < pit_threshold).count();
+    if initial_low >= min_low {
+      // Find where sustained high speed begins after the initial slow period
+      let mut high_count = 0usize;
+      let mut exit_i = initial_low;
+      for (i, &v) in samples.iter().enumerate().skip(initial_low) {
+        if v >= pit_threshold {
+          high_count += 1;
+          if high_count >= min_low {
+            exit_i = i + 1 - high_count;
+            break;
+          }
+        } else {
+          high_count = 0;
+        }
+      }
+      exit_i as f64 / freq
+    } else {
+      0.0
+    }
+  };
+
+  // ── In-lap: pit-lane period near the end ────────────────────────────────────
+  // Only search after start_offset + 70 % of median to avoid false positives.
+  let search_start_s = start_offset_s + median_racing_s * 0.7;
+  let search_i = (search_start_s * freq) as usize;
+  let end_offset_s = if search_i < samples.len() {
+    let mut low_count = 0usize;
+    let mut low_start = search_i;
+    let mut found: Option<f64> = None;
+    for (i, &v) in samples.iter().enumerate().skip(search_i) {
+      if v < pit_threshold {
+        if low_count == 0 {
+          low_start = i;
+        }
+        low_count += 1;
+        if low_count >= min_low {
+          found = Some(low_start as f64 / freq);
+          break;
+        }
+      } else {
+        low_count = 0;
+      }
+    }
+    found.unwrap_or(actual_dur)
+  } else {
+    actual_dur
+  };
+
+  let duration = (end_offset_s - start_offset_s).max(0.0);
+  (start_offset_s, duration)
+}
+
+/// Filter `laps` to only racing laps, removing pit-stop laps and reset/abort laps.
+///
+/// Strategy: use the median complete-lap duration as a reference and keep only
+/// laps within [median × 0.5, median × 1.5]. This tolerates yellow-flag laps
+/// (~20 % slower) while reliably discarding in-laps (typically 2× or more) and
+/// ESC-reset laps (typically < 50 % of a normal lap). Laps with no recorded
+/// duration (last incomplete lap) are always excluded.
+pub fn filter_racing_laps(laps: &[LapInfo]) -> Vec<LapInfo> {
+  let mut durations: Vec<f64> = laps.iter().filter_map(|l| l.duration_s).collect();
+  if durations.is_empty() {
+    return vec![];
+  }
+  durations.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+  let median = durations[durations.len() / 2];
+  let lo = median * 0.5;
+  let hi = median * 1.5;
+  laps
+    .iter()
+    .filter(|l| l.duration_s.map(|d| d >= lo && d <= hi).unwrap_or(false))
+    .cloned()
+    .collect()
+}

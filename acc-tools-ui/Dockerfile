@@ -1,5 +1,5 @@
 # Build stage
-FROM rust:1.95 AS builder
+FROM docker.io/library/rust:1.95 AS builder
 
 RUN cargo install trunk
 RUN rustup target add wasm32-unknown-unknown
@@ -15,6 +15,7 @@ COPY package.json package-lock.json* ./
 RUN npm install
 
 # Workspace files
+COPY .cargo ./.cargo
 COPY Cargo.toml Cargo.lock ./
 COPY acc-session-viewer/lib ./acc-session-viewer/lib
 COPY acc-tools-ui-components ./acc-tools-ui-components
@@ -26,7 +27,7 @@ WORKDIR /app/acc-tools-ui
 RUN trunk build --release
 
 # Production stage
-FROM nginx:alpine
+FROM docker.io/library/nginx:alpine
 
 COPY --from=builder /app/acc-tools-ui/dist /usr/share/nginx/html
 COPY acc-tools-ui/nginx.conf /etc/nginx/conf.d/default.conf

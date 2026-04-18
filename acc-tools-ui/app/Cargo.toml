@@ -16,8 +16,8 @@ acc-session-viewer-lib = { path = "../../acc-session-viewer/lib" }
 motec-viewer-lib = { path = "../../motec-viewer/lib" }
 acc-tools-ui-components = { path = "../../acc-tools-ui-components" }
 
-# WASM target — getrandom 0.3 requires explicit backend selection
-getrandom = { version = "0.4", features = ["wasm_js"] }
+# Force wasm_js feature on getrandom 0.3 (used transitively by leptos et al.)
+getrandom = { version = "0.3", features = ["wasm_js"] } # renovate: ignore
 
 # CSR dependencies
 wasm-bindgen = { version = "0.2", optional = true }

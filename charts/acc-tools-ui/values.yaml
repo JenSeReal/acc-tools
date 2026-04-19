@@ -76,3 +76,15 @@ extraVolumeMounts:
     mountPath: /var/cache/nginx
   - name: nginx-run
     mountPath: /var/run
+
+surrealdb:
+  # SurrealDB connection settings
+  # See full options: https://github.com/surrealdb/helm-charts
+  replicaCount: 1
+  image:
+    tag: ""
+  surrealdb:
+    path: memory
+    auth: true
+    username: root
+    password: root

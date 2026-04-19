@@ -16,11 +16,13 @@ acc-session-viewer-lib = { path = "../../acc-session-viewer/lib" }
 motec-viewer-lib = { path = "../../motec-viewer/lib" }
 acc-tools-ui-components = { path = "../../acc-tools-ui-components" }
 
-# Force wasm_js feature on getrandom 0.3 (used transitively by leptos et al.)
-getrandom = { version = "0.3", features = ["wasm_js"] } # renovate: ignore
+# Force wasm target support on getrandom (used transitively by leptos, gloo-net et al.)
+getrandom = { version = "0.4", features = ["wasm_js"] } # renovate: ignore
+getrandom03 = { package = "getrandom", version = "0.3", features = ["wasm_js"], optional = true }
 
 # CSR dependencies
 wasm-bindgen = { version = "0.2", optional = true }
+gloo-net = { version = "0.6", optional = true }
 wasm-bindgen-futures = { version = "0.4", optional = true }
 console_error_panic_hook = { version = "0.1.7", optional = true }
 js-sys = { version = "0.3", optional = true }
@@ -56,6 +58,7 @@ csr = [
     "dep:wasm-bindgen-futures",
     "dep:console_error_panic_hook",
     "dep:js-sys",
+    "dep:getrandom03",
 ]
 hydrate = [
     "leptos/hydrate",
@@ -64,6 +67,11 @@ hydrate = [
     "dep:wasm-bindgen-futures",
     "dep:console_error_panic_hook",
     "dep:js-sys",
+    "dep:getrandom03",
+]
+web = [
+    "csr",
+    "dep:gloo-net",
 ]
 ssr = [
     "leptos/ssr",

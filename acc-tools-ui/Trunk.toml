@@ -9,6 +9,10 @@ ignore = ["./src-tauri", "./dist"]
 port = 1420
 open = false
 
+[[proxy]]
+backend = "http://localhost:8080/api"
+rewrite = "/api"
+
 [[hooks]]
 stage = "pre_build"
 command = "npx"

@@ -21,6 +21,7 @@ in {
 
     cargo-binstall
     cargo-tauri
+    cargo-watch
     trunk
     # Tauri dependencies for Linux
     webkitgtk_4_1
@@ -81,8 +82,8 @@ in {
     "acc-tools-ui:desktop".exec = "cd acc-tools-ui && cargo tauri dev";
     "acc-tools-ui:desktop".description = "Run ACC Tools desktop app in dev mode";
 
-    "acc-tools-ui:web".exec = "trunk serve --config acc-tools-ui/Trunk.toml";
-    "acc-tools-ui:web".description = "Run ACC Tools web server";
+    "acc-tools-ui:web".exec = "devenv up";
+    "acc-tools-ui:web".description = "Run ACC Tools web server (Axum backend + Trunk frontend)";
 
     "rust-ui:init".exec = "ui init";
     "rust-ui:init".description = "Initialize rust-ui in project";
@@ -98,6 +99,11 @@ in {
 
     "tailwind:watch".exec = "npm run watch:css";
     "tailwind:watch".description = "Watch and rebuild Tailwind CSS";
+  };
+
+  processes = {
+    server.exec = "cargo watch -p acc-tools-ui-server -x \"run -p acc-tools-ui-server\"";
+    frontend.exec = "trunk serve --config acc-tools-ui/Trunk.toml";
   };
 
   tasks = {

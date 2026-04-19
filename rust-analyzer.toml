@@ -1,0 +1,12 @@
+# Tell rust-analyzer to use the SSR feature set so it analyzes
+# WASM/Leptos crates against native-compatible code paths.
+# Without this, RA tries to check cdylib crates on the host target
+# and fails to load the workspace.
+[cargo]
+features = ["ssr"]
+
+[check]
+features = ["ssr"]
+# Exclude the Tauri crate from check — its build script requires
+# Tauri's native headers which may not be present in RA's environment.
+extraArgs = ["--exclude", "acc-tools-ui-tauri"]

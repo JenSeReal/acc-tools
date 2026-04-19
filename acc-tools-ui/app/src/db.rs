@@ -1,4 +1,4 @@
-//! Tauri command bridge – only active in CSR/hydrate (WASM) builds.
+//! Database bridge – Tauri invoke (desktop) or HTTP fetch (web).
 
 use serde::{Deserialize, Serialize};
 
@@ -13,10 +13,10 @@ pub struct SessionSummary {
   pub saved_at: u64,
 }
 
-// ── Tauri invoke binding (WASM only) ─────────────────────────────────────────
+// ── Tauri invoke bridge (desktop WASM, no `web` feature) ─────────────────────
 
-#[cfg(any(feature = "csr", feature = "hydrate"))]
-mod bridge {
+#[cfg(all(any(feature = "csr", feature = "hydrate"), not(feature = "web")))]
+mod tauri_bridge {
   use super::*;
   use acc_session_viewer_lib::loaded_session::LoadedSession;
   use wasm_bindgen::prelude::*;
@@ -49,7 +49,6 @@ mod bridge {
   }
 
   pub async fn save_session(session: &LoadedSession, file_name: &str) -> Result<String, String> {
-    // Tauri 2 converts camelCase JS keys → snake_case Rust params.
     #[derive(Serialize)]
     #[serde(rename_all = "camelCase")]
     struct Args<'a> {
@@ -88,5 +87,90 @@ mod bridge {
   }
 }
 
-#[cfg(any(feature = "csr", feature = "hydrate"))]
-pub use bridge::{delete_session, get_session, list_sessions, save_session};
+// ── HTTP fetch bridge (web WASM, `web` feature enabled) ──────────────────────
+
+#[cfg(feature = "web")]
+mod http_bridge {
+  use super::*;
+  use acc_session_viewer_lib::loaded_session::LoadedSession;
+  use gloo_net::http::Request;
+
+  pub async fn save_session(session: &LoadedSession, file_name: &str) -> Result<String, String> {
+    #[derive(Serialize)]
+    struct Body<'a> {
+      session: &'a LoadedSession,
+      file_name: &'a str,
+    }
+
+    #[derive(Deserialize)]
+    struct Resp {
+      id: String,
+    }
+
+    let resp = Request::post("/api/sessions")
+      .json(&Body { session, file_name })
+      .map_err(|e| e.to_string())?
+      .send()
+      .await
+      .map_err(|e| e.to_string())?;
+
+    if !resp.ok() {
+      return Err(format!("HTTP {}", resp.status()));
+    }
+
+    let r: Resp = resp.json().await.map_err(|e| e.to_string())?;
+    Ok(r.id)
+  }
+
+  pub async fn list_sessions() -> Result<Vec<SessionSummary>, String> {
+    let resp = Request::get("/api/sessions")
+      .send()
+      .await
+      .map_err(|e| e.to_string())?;
+
+    if !resp.ok() {
+      return Err(format!("HTTP {}", resp.status()));
+    }
+
+    resp.json().await.map_err(|e| e.to_string())
+  }
+
+  pub async fn get_session(id: &str) -> Result<Option<LoadedSession>, String> {
+    let resp = Request::get(&format!("/api/sessions/{id}"))
+      .send()
+      .await
+      .map_err(|e| e.to_string())?;
+
+    if resp.status() == 404 {
+      return Ok(None);
+    }
+
+    if !resp.ok() {
+      return Err(format!("HTTP {}", resp.status()));
+    }
+
+    let session: LoadedSession = resp.json().await.map_err(|e| e.to_string())?;
+    Ok(Some(session))
+  }
+
+  pub async fn delete_session(id: &str) -> Result<(), String> {
+    let resp = Request::delete(&format!("/api/sessions/{id}"))
+      .send()
+      .await
+      .map_err(|e| e.to_string())?;
+
+    if !resp.ok() {
+      return Err(format!("HTTP {}", resp.status()));
+    }
+
+    Ok(())
+  }
+}
+
+// ── Re-exports ────────────────────────────────────────────────────────────────
+
+#[cfg(all(any(feature = "csr", feature = "hydrate"), not(feature = "web")))]
+pub use tauri_bridge::{delete_session, get_session, list_sessions, save_session};
+
+#[cfg(feature = "web")]
+pub use http_bridge::{delete_session, get_session, list_sessions, save_session};

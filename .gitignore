@@ -24,3 +24,5 @@ acc-tools-ui/dist/
 .helm-packages/
 
 .claude
+
+sessions.db/

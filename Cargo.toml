@@ -6,6 +6,7 @@ members = [
     "motec-viewer/lib",
     "acc-tools-ui/app",
     "acc-tools-ui/src-tauri",
+    "acc-tools-ui/server",
 ]
 
 [workspace.package]

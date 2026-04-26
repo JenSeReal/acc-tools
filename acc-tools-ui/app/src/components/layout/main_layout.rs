@@ -6,6 +6,7 @@ pub fn MainLayout(children: Children) -> impl IntoView {
   let nav_links = vec![
     ("Session".to_string(), "/session".to_string()),
     ("Telemetry".to_string(), "/telemetry".to_string()),
+    ("Event".to_string(), "/event".to_string()),
   ];
 
   view! {

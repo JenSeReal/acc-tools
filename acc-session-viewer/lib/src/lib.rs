@@ -1,6 +1,7 @@
 pub mod car;
 pub mod driver;
 pub mod driver_stats;
+pub mod event;
 pub mod lap;
 pub mod leaderboard;
 pub mod loaded_session;

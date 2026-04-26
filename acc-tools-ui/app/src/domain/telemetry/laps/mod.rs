@@ -10,7 +10,7 @@ use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
 use motec_viewer_lib::{LdChannel, filter_racing_laps, racing_window};
 
-use crate::state::TelemetryState;
+use crate::common::state::TelemetryState;
 use channel_groups::{
   CHANNEL_GROUPS, ChannelGroupCard, InteractiveChart, build_charts, channel_group_index,
 };

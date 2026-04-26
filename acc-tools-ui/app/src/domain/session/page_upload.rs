@@ -3,7 +3,7 @@ use acc_tools_ui_components::FileUpload;
 use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
 
-use crate::state::SessionState;
+use crate::common::state::SessionState;
 
 #[component]
 pub fn SessionUploadPage() -> impl IntoView {
@@ -42,7 +42,7 @@ fn SavedSessions() -> impl IntoView {
   #[cfg(any(feature = "csr", feature = "hydrate"))]
   {
     let state = expect_context::<SessionState>();
-    use crate::db::SessionSummary;
+    use crate::common::db::SessionSummary;
 
     let sessions: RwSignal<Vec<SessionSummary>> = RwSignal::new(Vec::new());
     let load_error: RwSignal<Option<String>> = RwSignal::new(None);
@@ -50,7 +50,7 @@ fn SavedSessions() -> impl IntoView {
     // Load saved sessions on mount.
     Effect::new(move || {
       leptos::task::spawn_local(async move {
-        match crate::db::list_sessions().await {
+        match crate::common::db::list_sessions().await {
           Ok(list) => sessions.set(list),
           Err(e) => load_error.set(Some(e)),
         }
@@ -59,7 +59,7 @@ fn SavedSessions() -> impl IntoView {
 
     let refresh = move || {
       leptos::task::spawn_local(async move {
-        match crate::db::list_sessions().await {
+        match crate::common::db::list_sessions().await {
           Ok(list) => sessions.set(list),
           Err(e) => load_error.set(Some(e)),
         }
@@ -93,7 +93,7 @@ fn SavedSessions() -> impl IntoView {
                   let id = id_load.clone();
                   let navigate_load = navigate_load.get_value();
                   leptos::task::spawn_local(async move {
-                    match crate::db::get_session(&id).await {
+                    match crate::common::db::get_session(&id).await {
                       Ok(Some(session)) => {
                         state.session.set(Some(session));
                         state.selected_car_model.set(None);
@@ -113,7 +113,7 @@ fn SavedSessions() -> impl IntoView {
                 let on_delete = move |_| {
                   let id = id_delete.clone();
                   leptos::task::spawn_local(async move {
-                    match crate::db::delete_session(&id).await {
+                    match crate::common::db::delete_session(&id).await {
                       Ok(()) => refresh(),
                       Err(e) => load_error.set(Some(format!("Failed to delete: {e}"))),
                     }

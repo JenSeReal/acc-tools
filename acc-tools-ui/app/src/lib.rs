@@ -1,8 +1,7 @@
 pub mod app;
-pub mod db;
-pub mod layouts;
-pub mod pages;
-pub mod state;
+pub mod common;
+pub mod components;
+pub mod domain;
 
 pub use app::App;
 

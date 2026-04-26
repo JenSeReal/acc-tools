@@ -3,7 +3,7 @@ use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
 use motec_viewer_lib::{channel_description, fmt_duration};
 
-use crate::state::TelemetryState;
+use crate::common::state::TelemetryState;
 
 fn fmt_f64(v: f64) -> String {
   if v.is_nan() || v.is_infinite() {

@@ -2,7 +2,7 @@ use acc_tools_ui_components::{CarSelector, DriverStatsTable, SessionInfo};
 use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
 
-use crate::state::SessionState;
+use crate::common::state::SessionState;
 
 #[component]
 pub fn SessionViewPage() -> impl IntoView {
@@ -37,7 +37,7 @@ pub fn SessionViewPage() -> impl IntoView {
       if let Some(session) = session {
         save_status.set(Some("Saving...".to_string()));
         leptos::task::spawn_local(async move {
-          match crate::db::save_session(&session, "session").await {
+          match crate::common::db::save_session(&session, "session").await {
             Ok(_id) => save_status.set(Some("Saved!".to_string())),
             Err(e) => save_status.set(Some(format!("Error: {e}"))),
           }

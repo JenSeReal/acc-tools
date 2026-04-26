@@ -1,7 +1,7 @@
 use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
 
-use crate::state::TelemetryState;
+use crate::common::state::TelemetryState;
 
 #[component]
 pub fn TelemetryUploadPage() -> impl IntoView {

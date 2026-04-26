@@ -4,18 +4,20 @@ use leptos_meta::{Title, provide_meta_context};
 use leptos_router::components::{Route, Router, Routes};
 use leptos_router::path;
 
-use crate::layouts::MainLayout;
-use crate::pages::{
-  HomePage, SessionUploadPage, SessionViewPage, TelemetryLapsPage, TelemetryUploadPage,
-  TelemetryViewPage,
+use crate::common::state::{ChampionshipState, EventState, SessionState, TelemetryState};
+use crate::components::layout::MainLayout;
+use crate::domain::{
+  ChampionshipViewPage, EventListPage, EventViewPage, HomePage, SessionUploadPage, SessionViewPage,
+  TelemetryLapsPage, TelemetryUploadPage, TelemetryViewPage,
 };
-use crate::state::{SessionState, TelemetryState};
 
 #[component]
 pub fn App() -> impl IntoView {
   provide_meta_context();
   provide_context(SessionState::new());
   provide_context(TelemetryState::new());
+  provide_context(EventState::new());
+  provide_context(ChampionshipState::new());
 
   view! {
     <Title text="Apex Predators Sim Racing" />
@@ -29,6 +31,9 @@ pub fn App() -> impl IntoView {
             <Route path=path!("/telemetry") view=TelemetryUploadPage />
             <Route path=path!("/telemetry/view") view=TelemetryViewPage />
             <Route path=path!("/telemetry/laps") view=TelemetryLapsPage />
+            <Route path=path!("/event") view=EventListPage />
+            <Route path=path!("/event/view") view=EventViewPage />
+            <Route path=path!("/championship/view") view=ChampionshipViewPage />
           </Routes>
         </Router>
       </MainLayout>

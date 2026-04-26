@@ -1,7 +1,11 @@
 mod commands;
 mod db;
 
-use commands::{db_delete_session, db_get_session, db_list_sessions, db_save_session};
+use commands::{
+  db_delete_championship, db_delete_event, db_delete_session, db_get_championship, db_get_event,
+  db_get_session, db_list_championships, db_list_events, db_list_sessions, db_save_championship,
+  db_save_event, db_save_session,
+};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -15,9 +19,11 @@ pub fn run() {
         .expect("failed to resolve app data dir")
         .join("sessions.db");
       std::fs::create_dir_all(&db_path).ok();
-      let db =
-        tauri::async_runtime::block_on(db::init_db(db_path.to_str().expect("non-UTF-8 path")))
-          .expect("failed to initialise SurrealDB");
+      // In memory/server mode the path arg is ignored inside init_db,
+      // but we still pass the resolved data-dir path as a default for file mode.
+      let db_path_str = db_path.to_str().expect("non-UTF-8 path").to_string();
+      let db = tauri::async_runtime::block_on(db::init_db(&db_path_str))
+        .expect("failed to initialise SurrealDB");
       app.manage(db);
       Ok(())
     })
@@ -26,6 +32,14 @@ pub fn run() {
       db_list_sessions,
       db_get_session,
       db_delete_session,
+      db_save_event,
+      db_list_events,
+      db_get_event,
+      db_delete_event,
+      db_save_championship,
+      db_list_championships,
+      db_get_championship,
+      db_delete_championship,
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

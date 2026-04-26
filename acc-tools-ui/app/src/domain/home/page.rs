@@ -18,6 +18,11 @@ pub fn HomePage() -> impl IntoView {
           title="MoTeC Telemetry Viewer"
           description="Load a MoTeC .ld telemetry file with an optional .ldx lap-marker sidecar and inspect channel data."
         />
+        <ToolCard
+          href="/event"
+          title="Event"
+          description="Create a race event with a predetermined schedule of sessions. Upload ACC session files to each slot and explore per-driver statistics."
+        />
       </div>
     </main>
   }

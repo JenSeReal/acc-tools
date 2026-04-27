@@ -20,7 +20,6 @@ acc-tools-ui-components = { path = "../../acc-tools-ui-components" }
 # Force wasm target support on getrandom (used transitively by leptos, gloo-net et al.)
 time = { version = "0.3", features = ["wasm-bindgen", "macros", "formatting", "parsing"] }
 getrandom = { version = "0.4", features = ["wasm_js"] } # renovate: ignore
-getrandom03 = { package = "getrandom", version = "0.4", features = ["wasm_js"], optional = true }
 
 # CSR dependencies
 wasm-bindgen = { version = "0.2", optional = true }
@@ -60,7 +59,6 @@ csr = [
     "dep:wasm-bindgen-futures",
     "dep:console_error_panic_hook",
     "dep:js-sys",
-    "dep:getrandom03",
 ]
 hydrate = [
     "leptos/hydrate",
@@ -69,7 +67,6 @@ hydrate = [
     "dep:wasm-bindgen-futures",
     "dep:console_error_panic_hook",
     "dep:js-sys",
-    "dep:getrandom03",
 ]
 web = [
     "csr",

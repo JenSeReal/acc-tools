@@ -7,8 +7,8 @@ use leptos_router::path;
 use crate::common::state::{ChampionshipState, EventState, SessionState, TelemetryState};
 use crate::components::layout::MainLayout;
 use crate::domain::{
-  ChampionshipViewPage, EventListPage, EventViewPage, HomePage, SessionUploadPage, SessionViewPage,
-  TelemetryLapsPage, TelemetryUploadPage, TelemetryViewPage,
+  ChampionshipCreatePage, ChampionshipViewPage, EventListPage, EventViewPage, HomePage,
+  SessionUploadPage, SessionViewPage, TelemetryLapsPage, TelemetryUploadPage, TelemetryViewPage,
 };
 
 #[component]
@@ -33,6 +33,7 @@ pub fn App() -> impl IntoView {
             <Route path=path!("/telemetry/laps") view=TelemetryLapsPage />
             <Route path=path!("/event") view=EventListPage />
             <Route path=path!("/event/view") view=EventViewPage />
+            <Route path=path!("/championship/create") view=ChampionshipCreatePage />
             <Route path=path!("/championship/view") view=ChampionshipViewPage />
           </Routes>
         </Router>

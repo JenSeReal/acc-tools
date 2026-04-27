@@ -226,11 +226,14 @@ fn AddEventDialog(open: RwSignal<bool>, championship_state: ChampionshipState) -
     {
       if let Some((id, championship)) = championship_state.championship.get() {
         leptos::task::spawn_local(async move {
-          let _ = crate::common::db::save_championship(&championship).await;
-          // Update the stored id with the new one returned — but since we're
-          // updating in place we need to persist with the existing id.
-          // For now we just re-save; the server upserts by record id.
           let _ = crate::common::db::delete_championship(&id).await;
+          if let Ok(new_id) = crate::common::db::save_championship(&championship).await {
+            championship_state.championship.update(|opt| {
+              if let Some((stored_id, _)) = opt {
+                *stored_id = new_id;
+              }
+            });
+          }
         });
       }
     }
@@ -349,8 +352,6 @@ pub fn ChampionshipViewPage() -> impl IntoView {
       };
       save_status.set(Some("Saving…".to_string()));
       leptos::task::spawn_local(async move {
-        // Delete old record and save with same data (server assigns new id from POST).
-        // To truly update we'd need a PUT endpoint; for now delete+create is fine.
         let _ = crate::common::db::delete_championship(&id).await;
         match crate::common::db::save_championship(&championship).await {
           Ok(new_id) => {

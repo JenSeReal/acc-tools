@@ -20,6 +20,7 @@ acc-tools-ui-components = { path = "../../acc-tools-ui-components" }
 # Force wasm target support on getrandom (used transitively by leptos, gloo-net et al.)
 time = { version = "0.3", features = ["wasm-bindgen", "macros", "formatting", "parsing"] }
 getrandom = { version = "0.4", features = ["wasm_js"] } # renovate: ignore
+getrandom03 = { package = "getrandom", version = "0.3", features = ["wasm_js"] } # renovate: ignore
 
 # CSR dependencies
 wasm-bindgen = { version = "0.2", optional = true }

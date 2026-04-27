@@ -75,147 +75,363 @@ fn month_name(m: Month) -> &'static str {
   }
 }
 
-// ── SingleDatePicker ──────────────────────────────────────────────────────────
+// ── ClockTimePicker ───────────────────────────────────────────────────────────
 
-#[component]
-fn SingleDatePicker(selected: RwSignal<String>) -> impl IntoView {
-  use time::macros::format_description;
-  let fmt = format_description!("[year]-[month]-[day]");
-
-  let now = time::OffsetDateTime::now_utc();
-  let (init_year, init_month) = {
-    let s = selected.get_untracked();
-    if let Ok(d) = Date::parse(&s, fmt) {
-      (d.year(), d.month())
-    } else {
-      (now.year(), now.month())
-    }
-  };
-
-  let view_year = RwSignal::new(init_year);
-  let view_month = RwSignal::new(init_month);
-  let fallback = Date::from_calendar_date(init_year, init_month, 1).unwrap_or_else(|_| now.date());
-  let selected_date: RwSignal<Date> =
-    RwSignal::new(Date::parse(&selected.get_untracked(), fmt).unwrap_or(fallback));
-
-  let prev_month = move |_| {
-    let m = view_month.get();
-    if m == Month::January {
-      view_month.set(Month::December);
-      view_year.update(|y| *y -= 1);
-    } else {
-      view_month.set(m.previous());
-    }
-  };
-  let next_month = move |_| {
-    let m = view_month.get();
-    if m == Month::December {
-      view_month.set(Month::January);
-      view_year.update(|y| *y += 1);
-    } else {
-      view_month.set(m.next());
-    }
-  };
-
-  view! {
-    <DatePicker>
-      <DatePickerHeader>
-        <DatePickerNavButton on:click=prev_month>"‹"</DatePickerNavButton>
-        <DatePickerTitle>
-          {move || format!("{} {}", month_name(view_month.get()), view_year.get())}
-        </DatePickerTitle>
-        <DatePickerNavButton on:click=next_month>"›"</DatePickerNavButton>
-      </DatePickerHeader>
-      <DatePickerTable>
-        <thead>
-          <DatePickerRow>
-            <DatePickerWeekDay>"Mo"</DatePickerWeekDay>
-            <DatePickerWeekDay>"Tu"</DatePickerWeekDay>
-            <DatePickerWeekDay>"We"</DatePickerWeekDay>
-            <DatePickerWeekDay>"Th"</DatePickerWeekDay>
-            <DatePickerWeekDay>"Fr"</DatePickerWeekDay>
-            <DatePickerWeekDay>"Sa"</DatePickerWeekDay>
-            <DatePickerWeekDay>"Su"</DatePickerWeekDay>
-          </DatePickerRow>
-        </thead>
-        <tbody>
-          {move || {
-            let year = view_year.get();
-            let month = view_month.get();
-            calendar_weeks(year, month)
-              .into_iter()
-              .map(|week| {
-                view! {
-                  <DatePickerRow>
-                    {week
-                      .into_iter()
-                      .map(|d| {
-                        let day = d.day;
-                        let disabled = d.disabled;
-                        let on_click = move |day: u8| {
-                          if let Ok(date) = Date::from_calendar_date(year, month, day) {
-                            selected_date.set(date);
-                            selected.set(date.format(fmt).unwrap_or_default());
-                          }
-                        };
-                        view! {
-                          <DatePickerCell
-                            day=day year=year month=month disabled=disabled
-                            start_date=selected_date end_date=selected_date
-                            on_click=on_click
-                          />
-                        }
-                      })
-                      .collect_view()}
-                  </DatePickerRow>
-                }
-              })
-              .collect_view()
-          }}
-        </tbody>
-      </DatePickerTable>
-    </DatePicker>
-  }
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum ClockMode {
+  Hour,
+  Minute,
 }
 
-// ── SingleDateTimePicker ──────────────────────────────────────────────────────
+fn clock_pos(index: usize, r: f64) -> (f64, f64) {
+  let angle = 2.0 * std::f64::consts::PI * index as f64 / 12.0 - std::f64::consts::FRAC_PI_2;
+  (120.0 + r * angle.cos(), 120.0 + r * angle.sin())
+}
 
 #[component]
-fn SingleDateTimePicker(selected: RwSignal<String>, label: &'static str) -> impl IntoView {
-  let init = selected.get_untracked();
-  let (init_date, init_time) = if let Some(pos) = init.find('T') {
-    (init[..pos].to_string(), init[pos + 1..].to_string())
-  } else {
-    (init, String::new())
+fn ClockTimePicker(value: RwSignal<String>) -> impl IntoView {
+  let parse_hm = |s: &str| -> (u8, u8) {
+    let mut parts = s.splitn(2, ':');
+    let h = parts.next().and_then(|v| v.parse::<u8>().ok()).unwrap_or(0);
+    let m = parts.next().and_then(|v| v.parse::<u8>().ok()).unwrap_or(0);
+    (h, m)
   };
+  let (h0, m0) = parse_hm(&value.get_untracked());
+  let is_pm: RwSignal<bool> = RwSignal::new(h0 >= 12);
+  let hour: RwSignal<u8> = RwSignal::new(h0 % 12); // 0 = 12 o'clock
+  let minute: RwSignal<u8> = RwSignal::new(m0);
+  let mode: RwSignal<ClockMode> = RwSignal::new(ClockMode::Hour);
 
-  let date_str: RwSignal<String> = RwSignal::new(init_date);
-  let time_str: RwSignal<String> = RwSignal::new(init_time);
-
+  // Sync to "HH:MM" 24h output
   Effect::new(move |_| {
-    let d = date_str.get();
-    let t = time_str.get();
-    selected.set(if d.is_empty() {
-      String::new()
-    } else if t.is_empty() {
-      d
-    } else {
-      format!("{}T{}", d, t)
-    });
+    let h12 = hour.get();
+    let m = minute.get();
+    let h24: u8 = match (h12, is_pm.get()) {
+      (0, false) => 0,
+      (0, true) => 12,
+      (h, false) => h,
+      (h, true) => h + 12,
+    };
+    value.set(format!("{:02}:{:02}", h24, m));
   });
 
   view! {
-    <div class="space-y-1">
-      <p class="text-xs font-medium text-muted-foreground">{label}</p>
-      <SingleDatePicker selected=date_str />
-      <div class="flex items-center gap-2 border-t px-1 pt-2 mt-1">
-        <span class="text-xs text-muted-foreground">"Time"</span>
-        <input
-          type="time"
-          prop:value=move || time_str.get()
-          on:input=move |ev| time_str.set(event_target_value(&ev))
-          class="rounded-md border border-input bg-background px-2 py-1 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
-        />
+    <div class="flex flex-col items-center gap-3 select-none">
+
+      // ── Time display ───────────────────────────────────────────────────────
+      <div class="flex items-center gap-1.5 rounded-2xl bg-muted/50 px-4 py-3">
+        <button
+          class=move || if mode.get() == ClockMode::Hour {
+            "w-14 text-4xl font-light rounded-xl bg-primary/15 text-primary text-center"
+          } else {
+            "w-14 text-4xl font-light rounded-xl hover:bg-muted text-muted-foreground text-center"
+          }
+          on:click=move |_| mode.set(ClockMode::Hour)
+        >
+          {move || format!("{:02}", if hour.get() == 0 { 12u8 } else { hour.get() })}
+        </button>
+        <span class="text-4xl font-light text-foreground/40">":"</span>
+        <button
+          class=move || if mode.get() == ClockMode::Minute {
+            "w-14 text-4xl font-light rounded-xl bg-primary/15 text-primary text-center"
+          } else {
+            "w-14 text-4xl font-light rounded-xl hover:bg-muted text-muted-foreground text-center"
+          }
+          on:click=move |_| mode.set(ClockMode::Minute)
+        >
+          {move || format!("{:02}", minute.get())}
+        </button>
+        <div class="flex flex-col ml-2 rounded-lg border border-input overflow-hidden text-xs font-medium">
+          <button
+            class=move || if !is_pm.get() {
+              "px-2 py-1.5 bg-primary text-primary-foreground"
+            } else {
+              "px-2 py-1.5 hover:bg-muted"
+            }
+            on:click=move |_| is_pm.set(false)
+          >"AM"</button>
+          <div class="border-t border-input" />
+          <button
+            class=move || if is_pm.get() {
+              "px-2 py-1.5 bg-primary text-primary-foreground"
+            } else {
+              "px-2 py-1.5 hover:bg-muted"
+            }
+            on:click=move |_| is_pm.set(true)
+          >"PM"</button>
+        </div>
+      </div>
+
+      // ── Clock face ────────────────────────────────────────────────────────
+      <svg attr:viewBox="0 0 240 240" class="w-48 h-48">
+        // Background
+        <circle attr:cx="120" attr:cy="120" attr:r="108" class="fill-muted" />
+
+        // Hand + knobs
+        {move || {
+          let idx = if mode.get() == ClockMode::Hour {
+            hour.get() as usize
+          } else {
+            (minute.get() / 5) as usize
+          };
+          let (hx, hy) = clock_pos(idx, 78.0);
+          view! {
+            <g>
+              <line
+                attr:x1="120" attr:y1="120"
+                attr:x2={hx.to_string()} attr:y2={hy.to_string()}
+                class="stroke-primary"
+                attr:stroke-width="2"
+              />
+              <circle attr:cx="120" attr:cy="120" attr:r="4" class="fill-primary" />
+              <circle
+                attr:cx={hx.to_string()} attr:cy={hy.to_string()}
+                attr:r="20"
+                class="fill-primary"
+              />
+            </g>
+          }
+        }}
+
+        // Numbers (re-render on mode / selection change)
+        {move || {
+          let m = mode.get();
+          let sel = if m == ClockMode::Hour {
+            hour.get() as usize
+          } else {
+            (minute.get() / 5) as usize
+          };
+          (0usize..12).map(|i| {
+            let label = if m == ClockMode::Hour {
+              if i == 0 { "12".to_string() } else { i.to_string() }
+            } else {
+              format!("{:02}", i * 5)
+            };
+            let (x, y) = clock_pos(i, 78.0);
+            let is_sel = sel == i;
+            view! {
+              <g
+                on:click=move |_| {
+                  if mode.get() == ClockMode::Hour {
+                    hour.set(i as u8);
+                    mode.set(ClockMode::Minute);
+                  } else {
+                    minute.set((i as u8) * 5);
+                  }
+                }
+                class="cursor-pointer"
+              >
+                <text
+                  attr:x={x.to_string()}
+                  attr:y={y.to_string()}
+                  attr:text-anchor="middle"
+                  attr:dominant-baseline="central"
+                  attr:font-size="13"
+                  class=if is_sel {
+                    "fill-primary-foreground font-medium"
+                  } else {
+                    "fill-foreground"
+                  }
+                >
+                  {label}
+                </text>
+              </g>
+            }
+          }).collect_view()
+        }}
+      </svg>
+    </div>
+  }
+}
+
+// ── SlotSchedulePicker ────────────────────────────────────────────────────────
+
+#[component]
+fn SlotSchedulePicker(start_at: RwSignal<String>, end_at: RwSignal<String>) -> impl IntoView {
+  use time::macros::format_description;
+  let fmt = format_description!("[year]-[month]-[day]");
+
+  let parse_dt = |s: &str| -> (Option<Date>, String) {
+    if let Some(i) = s.find('T') {
+      (Date::parse(&s[..i], fmt).ok(), s[i + 1..].to_string())
+    } else {
+      (Date::parse(s, fmt).ok(), String::new())
+    }
+  };
+  let (init_start_date, init_start_time) = parse_dt(&start_at.get_untracked());
+  let (init_end_date, init_end_time) = parse_dt(&end_at.get_untracked());
+
+  let now = time::OffsetDateTime::now_utc();
+  let sentinel = Date::from_calendar_date(1900, Month::January, 1).unwrap();
+
+  let start_date: RwSignal<Option<Date>> = RwSignal::new(init_start_date);
+  let end_date: RwSignal<Option<Date>> = RwSignal::new(init_end_date);
+  let start_time: RwSignal<String> = RwSignal::new(init_start_time);
+  let end_time: RwSignal<String> = RwSignal::new(init_end_time);
+
+  let display = RwSignal::new(init_start_date.unwrap_or_else(|| now.date()));
+  let start_sig = RwSignal::new(init_start_date.unwrap_or(sentinel));
+  let end_sig = RwSignal::new(init_end_date.unwrap_or(sentinel));
+
+  // Keep sentinel signals in sync for DatePickerCell rendering
+  Effect::new(move |_| start_sig.set(start_date.get().unwrap_or(sentinel)));
+  Effect::new(move |_| end_sig.set(end_date.get().unwrap_or(sentinel)));
+
+  // Sync start_at output
+  Effect::new(move |_| {
+    start_at.set(match start_date.get() {
+      None => String::new(),
+      Some(d) => {
+        let t = start_time.get();
+        let ds = d.format(fmt).unwrap_or_default();
+        if t.is_empty() {
+          ds
+        } else {
+          format!("{}T{}", ds, t)
+        }
+      }
+    });
+  });
+
+  // Sync end_at output
+  Effect::new(move |_| {
+    end_at.set(match end_date.get() {
+      None => String::new(),
+      Some(d) => {
+        let t = end_time.get();
+        let ds = d.format(fmt).unwrap_or_default();
+        if t.is_empty() {
+          ds
+        } else {
+          format!("{}T{}", ds, t)
+        }
+      }
+    });
+  });
+
+  let go_prev = move |_| {
+    let d = display.get();
+    let new = if d.month() == Month::January {
+      Date::from_calendar_date(d.year() - 1, Month::December, 1)
+    } else {
+      Date::from_calendar_date(d.year(), d.month().previous(), 1)
+    };
+    if let Ok(nd) = new {
+      display.set(nd);
+    }
+  };
+  let go_next = move |_| {
+    let d = display.get();
+    let new = if d.month() == Month::December {
+      Date::from_calendar_date(d.year() + 1, Month::January, 1)
+    } else {
+      Date::from_calendar_date(d.year(), d.month().next(), 1)
+    };
+    if let Ok(nd) = new {
+      display.set(nd);
+    }
+  };
+
+  view! {
+    <div class="space-y-3">
+
+      // Range calendar
+      <DatePicker>
+        <DatePickerHeader>
+          <DatePickerNavButton on:click=go_prev>"‹"</DatePickerNavButton>
+          <DatePickerTitle>
+            {move || format!("{} {}", month_name(display.get().month()), display.get().year())}
+          </DatePickerTitle>
+          <DatePickerNavButton on:click=go_next>"›"</DatePickerNavButton>
+        </DatePickerHeader>
+        <DatePickerTable>
+          <thead>
+            <DatePickerRow>
+              <DatePickerWeekDay>"Mo"</DatePickerWeekDay>
+              <DatePickerWeekDay>"Tu"</DatePickerWeekDay>
+              <DatePickerWeekDay>"We"</DatePickerWeekDay>
+              <DatePickerWeekDay>"Th"</DatePickerWeekDay>
+              <DatePickerWeekDay>"Fr"</DatePickerWeekDay>
+              <DatePickerWeekDay>"Sa"</DatePickerWeekDay>
+              <DatePickerWeekDay>"Su"</DatePickerWeekDay>
+            </DatePickerRow>
+          </thead>
+          <tbody>
+            {move || {
+              let year = display.get().year();
+              let month = display.get().month();
+              calendar_weeks(year, month)
+                .into_iter()
+                .map(|week| {
+                  view! {
+                    <DatePickerRow>
+                      {week
+                        .into_iter()
+                        .map(|d| {
+                          let day = d.day;
+                          let disabled = d.disabled;
+                          let on_click = move |day: u8| {
+                            if disabled { return; }
+                            let Ok(new_date) = Date::from_calendar_date(year, month, day) else { return; };
+                            match (start_date.get(), end_date.get()) {
+                              (None, _) | (_, None) => {
+                                start_date.set(Some(new_date));
+                                end_date.set(Some(new_date));
+                              }
+                              (Some(s), Some(e)) => {
+                                let ds = (new_date - s).whole_days().abs();
+                                let de = (new_date - e).whole_days().abs();
+                                if ds <= de { start_date.set(Some(new_date)); }
+                                else { end_date.set(Some(new_date)); }
+                                let s2 = start_date.get().unwrap_or(new_date);
+                                let e2 = end_date.get().unwrap_or(new_date);
+                                if s2 > e2 {
+                                  start_date.set(Some(e2));
+                                  end_date.set(Some(s2));
+                                }
+                              }
+                            }
+                          };
+                          view! {
+                            <DatePickerCell
+                              day=day year=year month=month disabled=disabled
+                              start_date=start_sig end_date=end_sig
+                              on_click=on_click
+                            />
+                          }
+                        })
+                        .collect_view()}
+                    </DatePickerRow>
+                  }
+                })
+                .collect_view()
+            }}
+          </tbody>
+        </DatePickerTable>
+      </DatePicker>
+
+      <p class="text-xs text-muted-foreground">
+        {move || match (start_date.get(), end_date.get()) {
+          (Some(s), Some(e)) if s == e => s.format(fmt).unwrap_or_default(),
+          (Some(s), Some(e)) => format!(
+            "{} – {}",
+            s.format(fmt).unwrap_or_default(),
+            e.format(fmt).unwrap_or_default(),
+          ),
+          _ => "No date selected".to_string(),
+        }}
+      </p>
+
+      // Clock time pickers
+      <div class="grid grid-cols-2 gap-4 border-t pt-4">
+        <div class="space-y-2">
+          <p class="text-xs font-medium text-muted-foreground">"Start time"</p>
+          <ClockTimePicker value=start_time />
+        </div>
+        <div class="space-y-2">
+          <p class="text-xs font-medium text-muted-foreground">"End time"</p>
+          <ClockTimePicker value=end_time />
+        </div>
       </div>
     </div>
   }
@@ -229,7 +445,11 @@ fn next_slot_id() -> String {
 }
 
 #[component]
-fn AddSessionDialog(open: RwSignal<bool>, state: EventState) -> impl IntoView {
+fn AddSessionDialog(
+  open: RwSignal<bool>,
+  state: EventState,
+  toast_msg: RwSignal<Option<String>>,
+) -> impl IntoView {
   let label: RwSignal<String> = RwSignal::new(String::new());
   let description: RwSignal<String> = RwSignal::new(String::new());
   let session_type: RwSignal<SessionType> = RwSignal::new(SessionType::FreePractice);
@@ -278,6 +498,7 @@ fn AddSessionDialog(open: RwSignal<bool>, state: EventState) -> impl IntoView {
     end_at.set(String::new());
     error.set(None);
     open.set(false);
+    toast_msg.set(Some("Session added successfully.".to_string()));
   };
 
   view! {
@@ -350,10 +571,7 @@ fn AddSessionDialog(open: RwSignal<bool>, state: EventState) -> impl IntoView {
       </div>
 
       // Date/time pickers
-      <div class="grid grid-cols-2 gap-6">
-        <SingleDateTimePicker selected=start_at label="Start" />
-        <SingleDateTimePicker selected=end_at label="End" />
-      </div>
+      <SlotSchedulePicker start_at=start_at end_at=end_at />
 
       <button
         on:click=on_submit
@@ -383,6 +601,26 @@ pub fn EventViewPage() -> impl IntoView {
 
   let add_open: RwSignal<bool> = RwSignal::new(false);
   let save_status: RwSignal<Option<String>> = RwSignal::new(None);
+  let toast_msg: RwSignal<Option<String>> = RwSignal::new(None);
+
+  // Auto-dismiss toast after 3 s
+  Effect::new(move |_| {
+    if toast_msg.get().is_some() {
+      #[cfg(any(feature = "csr", feature = "hydrate"))]
+      {
+        use wasm_bindgen::JsCast;
+        use wasm_bindgen::closure::Closure;
+        let closure: Closure<dyn Fn()> = Closure::new(move || toast_msg.set(None));
+        let _ = web_sys::window()
+          .unwrap()
+          .set_timeout_with_callback_and_timeout_and_arguments_0(
+            closure.as_ref().unchecked_ref::<js_sys::Function>(),
+            3000,
+          );
+        closure.forget();
+      }
+    }
+  });
 
   // Back target depends on whether we came from a championship.
   let on_back = move |_| {
@@ -473,12 +711,6 @@ pub fn EventViewPage() -> impl IntoView {
               view! { <span class=cls>{msg}</span> }
             })}
             <button
-              on:click=move |_| add_open.set(true)
-              class="inline-flex items-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-muted"
-            >
-              "+ Add Session"
-            </button>
-            <button
               on:click=on_save
               class="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
             >
@@ -515,7 +747,24 @@ pub fn EventViewPage() -> impl IntoView {
 
         // ── Add Session dialog ────────────────────────────────────────────────
         <Show when=move || add_open.get()>
-          <AddSessionDialog open=add_open state=state />
+          <AddSessionDialog open=add_open state=state toast_msg=toast_msg />
+        </Show>
+
+        // ── Floating action button ────────────────────────────────────────────
+        <button
+          on:click=move |_| add_open.set(true)
+          class="fixed bottom-6 right-6 z-30 inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground shadow-lg transition-colors hover:bg-primary/90"
+        >
+          "+ Add Session"
+        </button>
+
+        // ── Toast notification ────────────────────────────────────────────────
+        <Show when=move || toast_msg.get().is_some()>
+          <div class="fixed bottom-20 right-6 z-50 flex items-center gap-3 rounded-lg border bg-card px-4 py-3 shadow-lg">
+            <span class="text-sm font-medium">
+              {move || toast_msg.get().unwrap_or_default()}
+            </span>
+          </div>
         </Show>
 
       </Show>

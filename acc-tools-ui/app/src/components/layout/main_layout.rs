@@ -7,6 +7,10 @@ pub fn MainLayout(children: Children) -> impl IntoView {
     ("Session".to_string(), "/session".to_string()),
     ("Telemetry".to_string(), "/telemetry".to_string()),
     ("Event".to_string(), "/event".to_string()),
+    (
+      "Championship".to_string(),
+      "/championship/create".to_string(),
+    ),
   ];
 
   view! {

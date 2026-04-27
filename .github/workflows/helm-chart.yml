@@ -78,6 +78,7 @@ jobs:
           for chart in charts/*/; do
             chart_name=$(basename "$chart")
             echo "Packaging $chart_name..."
+            helm dependency update "$chart"
             helm package "$chart" --destination .helm-packages
 
             # Get the packaged file name

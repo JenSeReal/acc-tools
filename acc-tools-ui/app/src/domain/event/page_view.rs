@@ -781,6 +781,7 @@ fn SlotView(schedule_slot: ScheduleSlot, state: EventState) -> impl IntoView {
   let session: RwSignal<Option<LoadedSession>> = RwSignal::new(schedule_slot.session.clone());
   let car_model: RwSignal<Option<CarModel>> = RwSignal::new(None);
   let error_write = state.error.write_only();
+  let pending_session: RwSignal<Option<LoadedSession>> = RwSignal::new(None);
 
   let time_label = if schedule_slot.start_at.is_empty() {
     String::new()
@@ -796,30 +797,86 @@ fn SlotView(schedule_slot: ScheduleSlot, state: EventState) -> impl IntoView {
 
   let type_label = format!("{:?}{}", schedule_slot.session_type, time_label);
 
+  // StoredValue is Copy, so all closures below can be Fn (not FnOnce).
+  let slot_id_sv = StoredValue::new(slot_id);
+
+  let on_loaded = move |loaded: LoadedSession| {
+    if session.get().is_some() {
+      // A session already exists — hold for user confirmation.
+      pending_session.set(Some(loaded));
+    } else {
+      session.set(Some(loaded.clone()));
+      state.slot_sessions.update(|m| {
+        m.insert(slot_id_sv.get_value(), loaded);
+      });
+    }
+  };
+
   view! {
     <section class="space-y-4">
-      <div class="flex items-baseline gap-2 border-b pb-2">
-        <h2 class="text-xl font-semibold">{schedule_slot.label.clone()}</h2>
-        <span class="text-sm text-muted-foreground">{type_label}</span>
+      // ── Header with always-visible upload button ───────────────────────────
+      <div class="flex items-start justify-between gap-2 border-b pb-2">
+        <div class="flex items-baseline gap-2">
+          <h2 class="text-xl font-semibold">{schedule_slot.label.clone()}</h2>
+          <span class="text-sm text-muted-foreground">{type_label}</span>
+        </div>
+        <FileUpload on_session_loaded=on_loaded on_error=error_write />
       </div>
+
       {(!schedule_slot.description.is_empty()).then(|| view! {
         <p class="text-sm text-muted-foreground">{schedule_slot.description.clone()}</p>
       })}
 
+      // ── Conflict banner (shown when a file is picked for an occupied slot) ─
+      <Show when=move || pending_session.get().is_some()>
+        <div class="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800 px-4 py-3 space-y-3">
+          <p class="text-sm font-medium">
+            "A session is already uploaded for this slot. How would you like to proceed?"
+          </p>
+          <div class="flex items-center gap-2">
+            <button
+              on:click=move |_| {
+                let Some(pending) = pending_session.get() else { return; };
+                session.update(|opt| {
+                  if let Some(existing) = opt.as_mut() {
+                    existing.merge(&pending);
+                  }
+                });
+                if let Some(s) = session.get() {
+                  state.slot_sessions.update(|m| { m.insert(slot_id_sv.get_value(), s); });
+                }
+                pending_session.set(None);
+              }
+              class="inline-flex items-center rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+            >
+              "Append"
+            </button>
+            <button
+              on:click=move |_| {
+                let Some(pending) = pending_session.get() else { return; };
+                session.set(Some(pending.clone()));
+                state.slot_sessions.update(|m| { m.insert(slot_id_sv.get_value(), pending); });
+                pending_session.set(None);
+              }
+              class="inline-flex items-center rounded-md bg-destructive px-3 py-1.5 text-xs font-medium text-destructive-foreground shadow-sm transition-colors hover:bg-destructive/90"
+            >
+              "Replace"
+            </button>
+            <button
+              on:click=move |_| pending_session.set(None)
+              class="inline-flex items-center rounded-md border border-input bg-background px-3 py-1.5 text-xs font-medium shadow-sm transition-colors hover:bg-muted"
+            >
+              "Cancel"
+            </button>
+          </div>
+        </div>
+      </Show>
+
+      // ── Session content ────────────────────────────────────────────────────
       <Show
         when=move || session.get().is_some()
-        fallback=move || {
-          let slot_id_inner = slot_id.clone();
-          let on_loaded = move |loaded: LoadedSession| {
-            session.set(Some(loaded.clone()));
-            state.slot_sessions.update(|m| { m.insert(slot_id_inner.clone(), loaded); });
-          };
-          view! {
-            <div class="flex items-center gap-3">
-              <FileUpload on_session_loaded=on_loaded on_error=error_write />
-              <span class="text-sm text-muted-foreground">"No session uploaded yet"</span>
-            </div>
-          }
+        fallback=|| view! {
+          <p class="text-sm text-muted-foreground">"No session uploaded yet"</p>
         }
       >
         <SessionInfo session=session.read_only() />

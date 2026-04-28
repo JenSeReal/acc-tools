@@ -493,15 +493,14 @@ pub fn EventListPage() -> impl IntoView {
               each=move || championships.get()
               key=|c| c.id.clone()
               children=move |summary| {
-                let id_open = summary.id.clone();
-                let id_delete = summary.id.clone();
+                let id_sv = StoredValue::new(summary.id.clone());
                 #[cfg(not(any(feature = "csr", feature = "hydrate")))]
-                let _ = (&id_open, &id_delete);
+                let _ = id_sv;
 
                 let on_open = move |_| {
                   #[cfg(any(feature = "csr", feature = "hydrate"))]
                   {
-                    let id = id_open.clone();
+                    let id = id_sv.get_value();
                     let nav = navigate_sv.get_value();
                     leptos::task::spawn_local(async move {
                       match crate::common::db::get_championship(&id).await {
@@ -516,42 +515,36 @@ pub fn EventListPage() -> impl IntoView {
                   }
                 };
 
-                let on_delete = move |_| {
-                  #[cfg(any(feature = "csr", feature = "hydrate"))]
-                  {
-                    let id = id_delete.clone();
-                    leptos::task::spawn_local(async move {
-                      match crate::common::db::delete_championship(&id).await {
-                        Ok(()) => refresh.update(|n| *n += 1),
-                        Err(e) => load_error.set(Some(format!("Delete failed: {e}"))),
-                      }
-                    });
-                  }
-                };
-
                 let n = summary.event_count;
                 view! {
-                  <div class="flex items-center justify-between px-4 py-3">
+                  <div
+                    class="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-muted/50 transition-colors"
+                    on:click=on_open
+                  >
                     <div class="flex flex-col gap-0.5">
                       <span class="font-medium text-sm">{summary.title.clone()}</span>
                       <span class="text-xs text-muted-foreground">
                         {n}" event"{if n == 1 { "" } else { "s" }}
                       </span>
                     </div>
-                    <div class="flex items-center gap-2">
-                      <button
-                        class="inline-flex items-center rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
-                        on:click=on_open
-                      >
-                        "Open"
-                      </button>
-                      <button
-                        class="inline-flex items-center rounded-md bg-destructive px-3 py-1.5 text-xs font-medium text-destructive-foreground shadow-sm transition-colors hover:bg-destructive/90"
-                        on:click=on_delete
-                      >
-                        "Delete"
-                      </button>
-                    </div>
+                    <button
+                      class="inline-flex items-center rounded-md bg-destructive px-3 py-1.5 text-xs font-medium text-destructive-foreground shadow-sm transition-colors hover:bg-destructive/90"
+                      on:click=move |ev| {
+                        ev.stop_propagation();
+                        #[cfg(any(feature = "csr", feature = "hydrate"))]
+                        {
+                          let id = id_sv.get_value();
+                          leptos::task::spawn_local(async move {
+                            match crate::common::db::delete_championship(&id).await {
+                              Ok(()) => refresh.update(|n| *n += 1),
+                              Err(e) => load_error.set(Some(format!("Delete failed: {e}"))),
+                            }
+                          });
+                        }
+                      }
+                    >
+                      "Delete"
+                    </button>
                   </div>
                 }
               }
@@ -583,15 +576,14 @@ pub fn EventListPage() -> impl IntoView {
               each=move || events.get()
               key=|e| e.id.clone()
               children=move |summary| {
-                let id_load = summary.id.clone();
-                let id_delete = summary.id.clone();
+                let id_sv = StoredValue::new(summary.id.clone());
                 #[cfg(not(any(feature = "csr", feature = "hydrate")))]
-                let _ = (&id_load, &id_delete);
+                let _ = id_sv;
 
-                let on_load = move |_| {
+                let on_open = move |_| {
                   #[cfg(any(feature = "csr", feature = "hydrate"))]
                   {
-                    let id = id_load.clone();
+                    let id = id_sv.get_value();
                     let nav = navigate_sv.get_value();
                     leptos::task::spawn_local(async move {
                       match crate::common::db::get_event(&id).await {
@@ -609,19 +601,6 @@ pub fn EventListPage() -> impl IntoView {
                   }
                 };
 
-                let on_delete = move |_| {
-                  #[cfg(any(feature = "csr", feature = "hydrate"))]
-                  {
-                    let id = id_delete.clone();
-                    leptos::task::spawn_local(async move {
-                      match crate::common::db::delete_event(&id).await {
-                        Ok(()) => refresh.update(|n| *n += 1),
-                        Err(e) => load_error.set(Some(format!("Delete failed: {e}"))),
-                      }
-                    });
-                  }
-                };
-
                 let date_label = if summary.start_date.is_empty() {
                   "No date".to_string()
                 } else if summary.start_date == summary.end_date {
@@ -631,7 +610,10 @@ pub fn EventListPage() -> impl IntoView {
                 };
 
                 view! {
-                  <div class="flex items-center justify-between px-4 py-3">
+                  <div
+                    class="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-muted/50 transition-colors"
+                    on:click=on_open
+                  >
                     <div class="flex flex-col gap-0.5">
                       <span class="font-medium text-sm">{summary.title.clone()}</span>
                       <span class="text-xs text-muted-foreground">
@@ -639,20 +621,24 @@ pub fn EventListPage() -> impl IntoView {
                         {summary.slot_count}" session"{if summary.slot_count == 1 { "" } else { "s" }}
                       </span>
                     </div>
-                    <div class="flex items-center gap-2">
-                      <button
-                        class="inline-flex items-center rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
-                        on:click=on_load
-                      >
-                        "Open"
-                      </button>
-                      <button
-                        class="inline-flex items-center rounded-md bg-destructive px-3 py-1.5 text-xs font-medium text-destructive-foreground shadow-sm transition-colors hover:bg-destructive/90"
-                        on:click=on_delete
-                      >
-                        "Delete"
-                      </button>
-                    </div>
+                    <button
+                      class="inline-flex items-center rounded-md bg-destructive px-3 py-1.5 text-xs font-medium text-destructive-foreground shadow-sm transition-colors hover:bg-destructive/90"
+                      on:click=move |ev| {
+                        ev.stop_propagation();
+                        #[cfg(any(feature = "csr", feature = "hydrate"))]
+                        {
+                          let id = id_sv.get_value();
+                          leptos::task::spawn_local(async move {
+                            match crate::common::db::delete_event(&id).await {
+                              Ok(()) => refresh.update(|n| *n += 1),
+                              Err(e) => load_error.set(Some(format!("Delete failed: {e}"))),
+                            }
+                          });
+                        }
+                      }
+                    >
+                      "Delete"
+                    </button>
                   </div>
                 }
               }

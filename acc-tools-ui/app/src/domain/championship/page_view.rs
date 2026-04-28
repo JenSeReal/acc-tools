@@ -459,7 +459,10 @@ pub fn ChampionshipViewPage() -> impl IntoView {
               };
 
               view! {
-                <div class="flex items-center justify-between px-4 py-3">
+                <div
+                  class="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-muted/50 transition-colors"
+                  on:click=on_open
+                >
                   <div class="flex flex-col gap-0.5">
                     <span class="font-medium text-sm">{title}</span>
                     <span class="text-xs text-muted-foreground">
@@ -467,12 +470,7 @@ pub fn ChampionshipViewPage() -> impl IntoView {
                       {slot_count}" session"{if slot_count == 1 { "" } else { "s" }}
                     </span>
                   </div>
-                  <button
-                    on:click=on_open
-                    class="inline-flex items-center rounded-md border border-input bg-background px-3 py-1.5 text-xs font-medium shadow-sm transition-colors hover:bg-muted"
-                  >
-                    "Open"
-                  </button>
+                  <span class="text-muted-foreground text-sm">"›"</span>
                 </div>
               }
             }

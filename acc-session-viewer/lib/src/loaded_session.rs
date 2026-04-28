@@ -51,6 +51,18 @@ impl LoadedSession {
     }
   }
 
+  /// Merge another session's driver stats into this session.
+  /// Stats and car models from `other` are appended; car count is summed.
+  pub fn merge(&mut self, other: &LoadedSession) {
+    self.stats.extend(other.stats.iter().cloned());
+    self.car_count += other.car_count;
+    for &model in &other.car_models {
+      if !self.car_models.contains(&model) {
+        self.car_models.push(model);
+      }
+    }
+  }
+
   /// Filter stats by car model
   pub fn stats_for_car_model(&self, car_model: Option<CarModel>) -> Vec<&DriverStats> {
     match car_model {
